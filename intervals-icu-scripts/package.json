@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@intervals-icu/js-data-model": "^1.0.4"
+  }
+}
