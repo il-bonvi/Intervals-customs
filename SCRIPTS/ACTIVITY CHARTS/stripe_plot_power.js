@@ -1,4 +1,5 @@
 {
+  let chart;
   let power = icu.streams.fixed_watts;
   if (!power || power.length === 0) {
     chart = { data: [], layout: { title: 'Nessun dato potenza disponibile' } };

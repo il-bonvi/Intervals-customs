@@ -1,4 +1,5 @@
 {
+  let chart;
   let hr = icu.streams.fixed_heartrate;
   if (!hr || hr.length === 0) {
     chart = { data: [], layout: { title: 'Nessun dato frequenza cardiaca disponibile' } };
