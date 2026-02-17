@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intervals.icu — Estensioni JavaScript: Guida Completa</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f7fa; color: #1a1a2e; }
+
+  .site-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+    color: #fff; padding: 40px 60px 32px;
+  }
+  .site-header h1 { font-size: 2.2rem; font-weight: 700; }
+  .site-header h1 span { color: #818cf8; }
+  .site-header p { margin-top: 8px; opacity: 0.75; font-size: 1rem; }
+  .badge-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .badge { border-radius: 20px; padding: 4px 14px; font-size: 0.78rem; font-weight: 600; }
+  .badge.purple { background: rgba(129,140,248,0.2); border: 1px solid #818cf8; color: #c7d2fe; }
+  .badge.green  { background: rgba(16,185,129,0.2); border: 1px solid #10b981; color: #6ee7b7; }
+  .badge.amber  { background: rgba(245,158,11,0.2); border: 1px solid #f59e0b; color: #fcd34d; }
+
+  .main-wrap { display: flex; max-width: 1440px; margin: 0 auto; }
+
+  .sidebar {
+    width: 270px; min-width: 270px; background: #fff;
+    border-right: 1px solid #e2e8f0;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 20px 0;
+  }
+  .sidebar h3 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px;
+    color: #94a3b8; padding: 10px 20px 4px; margin-top: 10px; }
+  .sidebar a { display: block; padding: 7px 20px; color: #475569; text-decoration: none;
+    font-size: 0.84rem; border-left: 3px solid transparent; line-height: 1.3; }
+  .sidebar a:hover { background: #f1f5f9; color: #1a1a2e; border-left-color: #818cf8; }
+
+  .content { flex: 1; padding: 48px 60px; overflow: hidden; }
+
+  section { margin-bottom: 60px; }
+  section h2 { font-size: 1.55rem; color: #1a1a2e; border-bottom: 2px solid #818cf8;
+    padding-bottom: 10px; margin-bottom: 24px; }
+  section h3 { font-size: 1.1rem; color: #312e81; margin: 28px 0 12px; font-weight: 700; }
+  section > p, .desc { color: #64748b; margin-bottom: 16px; line-height: 1.75; }
+
+  .intro-box {
+    background: linear-gradient(135deg, #eef2ff, #faf5ff);
+    border: 1px solid #c7d2fe; border-radius: 12px; padding: 24px;
+    margin-bottom: 32px; line-height: 1.7; color: #374151;
+  }
+  .intro-box strong { color: #4338ca; }
+
+  /* Extension type cards */
+  .ext-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 24px 0; }
+  .ext-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border-top: 4px solid #818cf8;
+  }
+  .ext-card h4 { font-size: 1rem; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .ext-card p { font-size: 0.85rem; color: #64748b; line-height: 1.6; }
+  .ext-card .where { font-size: 0.75rem; background: #f1f5f9; border-radius: 4px;
+    padding: 3px 8px; color: #475569; display: inline-block; margin-top: 8px; }
+
+  /* Code */
+  pre {
+    background: #0f172a; color: #e2e8f0; border-radius: 10px;
+    padding: 18px 20px; font-size: 0.82rem; overflow-x: auto;
+    line-height: 1.65; margin: 12px 0;
+  }
+  code { font-family: 'Courier New', monospace; }
+  .kw { color: #93c5fd; }
+  .str { color: #6ee7b7; }
+  .cmt { color: #64748b; font-style: italic; }
+  .fn { color: #fbbf24; }
+  .num { color: #fb923c; }
+  .var { color: #f0abfc; }
+
+  /* Info boxes */
+  .note-box { background: #f0fdf4; border-left: 4px solid #22c55e;
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 12px 0;
+    font-size: 0.87rem; color: #14532d; line-height: 1.65; }
+  .warn-box { background: #fffbeb; border-left: 4px solid #f59e0b;
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 12px 0;
+    font-size: 0.87rem; color: #78350f; line-height: 1.65; }
+  .info-box { background: #eff6ff; border-left: 4px solid #3b82f6;
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 12px 0;
+    font-size: 0.87rem; color: #1e3a5f; line-height: 1.65; }
+  .tip-box { background: #faf5ff; border-left: 4px solid #a855f7;
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 12px 0;
+    font-size: 0.87rem; color: #4c1d95; line-height: 1.65; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 14px 0; }
+  th { background: #1e1b4b; color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; color: #374151; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td code, th code { background: #e0e7ff; padding: 2px 6px; border-radius: 4px;
+    font-family: monospace; color: #3730a3; font-size: 0.81rem; }
+
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%; background: #818cf8;
+    color: #fff; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; margin-right: 8px;
+  }
+
+  .prop-block { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 16px 20px; margin: 12px 0; }
+  .prop-block h5 { font-size: 0.85rem; color: #4338ca; font-weight: 700;
+    font-family: monospace; margin-bottom: 10px; border-bottom: 1px dashed #c7d2fe; padding-bottom: 6px; }
+  .prop-row { display: grid; grid-template-columns: 200px 90px 1fr;
+    gap: 6px; font-size: 0.82rem; padding: 5px 0; border-top: 1px solid #f1f5f9; align-items: start; }
+  .prop-name { font-family: monospace; color: #7c3aed; font-weight: 600; }
+  .prop-type { color: #0891b2; font-size: 0.78rem; padding-top: 2px; }
+  .prop-desc { color: #475569; }
+
+  .example-tag { display: inline-block; background: #dbeafe; color: #1d4ed8;
+    border-radius: 4px; padding: 2px 8px; font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+  .footer { background: #1e1b4b; color: #94a3b8; border-radius: 12px;
+    padding: 20px 28px; margin-top: 24px; font-size: 0.85rem; line-height: 1.8; }
+  .footer a { color: #818cf8; }
+  .footer strong { color: #e0e7ff; }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { padding: 24px 20px; }
+    .ext-grid { grid-template-columns: 1fr; }
+    .site-header { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <h1>Intervals<span>.icu</span> — Estensioni JavaScript</h1>
+  <p>Guida completa a tutti i punti di estensione programmabili con JavaScript</p>
+  <div class="badge-row">
+    <span class="badge purple">7 tipi di estensione</span>
+    <span class="badge green">Sandbox sicuro lato server</span>
+    <span class="badge amber">npm: @intervals-icu/js-data-model</span>
+  </div>
+</div>
+
+<div class="main-wrap">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <h3>Introduzione</h3>
+    <a href="#overview">Panoramica</a>
+    <a href="#sandbox">Sandbox e regole JS</a>
+    <a href="#datamodel">Data model (icu object)</a>
+    <a href="#streams-list">Streams disponibili</a>
+    <a href="#codecompletion">Code Completion</a>
+    <h3>1. Custom Wellness Fields</h3>
+    <a href="#wellness-fields">Campi wellness personalizzati</a>
+    <h3>2. Custom Activity Fields</h3>
+    <a href="#activity-fields">Campi attivita manuali</a>
+    <a href="#computed-fields">Campi calcolati con JS</a>
+    <a href="#fit-fields">Campi da FIT file</a>
+    <a href="#fit-messages">Campi da messaggi FIT</a>
+    <h3>3. Custom Interval Fields</h3>
+    <a href="#interval-fields">Campi per intervalli</a>
+    <h3>4. Custom Streams</h3>
+    <a href="#custom-streams">Stream da record FIT</a>
+    <a href="#js-streams">Stream calcolati con JS</a>
+    <a href="#fit-streams">Stream da messaggi FIT</a>
+    <h3>5. Custom Activity Charts</h3>
+    <a href="#activity-charts">Grafici Plotly sull'attivita</a>
+    <h3>6. Custom Fitness Charts</h3>
+    <a href="#fitness-charts">Grafici sulla pagina fitness</a>
+    <h3>Esempi pratici</h3>
+    <a href="#esempi-fields">Esempi: campi</a>
+    <a href="#esempi-streams">Esempi: streams</a>
+    <a href="#esempi-charts">Esempi: grafici</a>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- ===== OVERVIEW ===== -->
+    <section id="overview">
+      <h2>🧩 Panoramica delle Estensioni</h2>
+      <div class="intro-box">
+        Intervals.icu e una piattaforma <strong>programmabile</strong>: puoi scrivere codice JavaScript che gira in un sandbox sicuro sui server di Intervals per creare campi personalizzati, stream di dati, grafici e molto altro.<br><br>
+        Tutto il codice viene eseguito <strong>lato server</strong> in una sandbox isolata (motore Nashorn/GraalJS) quando l'attivita viene analizzata. I risultati vengono salvati e mostrati nell'interfaccia come se fossero dati nativi.<br><br>
+        Il punto di partenza per capire il data model e il pacchetto npm ufficiale: <strong><code>npm install @intervals-icu/js-data-model</code></strong> che fornisce TypeScript interfaces per code completion in VS Code e IntelliJ IDEA.
+      </div>
+
+      <div class="ext-grid">
+        <div class="ext-card">
+          <h4>&#128203; Custom Wellness Fields</h4>
+          <p>Campi di input giornalieri personalizzati nel diario wellness. Nessun codice necessario: solo configurazione. Possono essere condivisi con la community.</p>
+          <span class="where">Wellness dialog &rarr; Fields</span>
+        </div>
+        <div class="ext-card">
+          <h4>&#128202; Custom Activity Fields</h4>
+          <p>Campi sull'attivita: inseriti manualmente, calcolati con JS, o letti dai messaggi del file FIT (session, device_info, ecc.).</p>
+          <span class="where">Activity &rarr; Custom</span>
+        </div>
+        <div class="ext-card">
+          <h4>&#9889; Custom Interval Fields</h4>
+          <p>Campi calcolati per ogni intervallo rilevato nell'attivita. Hanno accesso all'oggetto <code>interval</code> con start/end index.</p>
+          <span class="where">Activity timeline &rarr; Fields</span>
+        </div>
+        <div class="ext-card">
+          <h4>&#128268; Custom Activity Streams</h4>
+          <p>Nuove serie temporali al secondo: estratte da campi record del FIT, da messaggi FIT arbitrari, o calcolate in JS da stream esistenti.</p>
+          <span class="where">Charts &rarr; Custom Streams</span>
+        </div>
+        <div class="ext-card">
+          <h4>&#128200; Custom Activity Charts</h4>
+          <p>Grafici Plotly.js completamente personalizzati nelle pagine HR, Power, Pace, Data dell'attivita. JS con accesso a tutti gli stream.</p>
+          <span class="where">Charts button in activity page</span>
+        </div>
+        <div class="ext-card">
+          <h4>&#128187; Custom Fitness Charts</h4>
+          <p>Grafici sulla pagina Fitness e Compare. Accesso a dati storici, custom fields e tutto il profilo atleta nel tempo.</p>
+          <span class="where">Fitness page &rarr; Charts</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SANDBOX ===== -->
+    <section id="sandbox">
+      <h2>&#128274; Sandbox JavaScript — Regole e Quirk</h2>
+      <p>Tutti gli script girano in un sandbox sicuro. Ci sono alcune regole importanti da seguire.</p>
+
+      <div class="warn-box">
+        <strong>IMPORTANTE — Dichiarazione variabili:</strong><br>
+        Gli script di tutti i campi di un'attivita condividono lo stesso sandbox. Se dichiari variabili con <code>let</code> o <code>var</code> al top-level e un altro script fa lo stesso, il secondo script fallisce.<br><br>
+        <strong>Soluzione 1 — Non usare let/var al top level:</strong> le variabili sono implicitamente globali nel sandbox.<br>
+        <strong>Soluzione 2 — Wrappa in un blocco:</strong>
+        <pre><code>{
+  <span class="kw">let</span> factor = <span class="num">2</span>
+  activity.average_stride * factor
+}</code></pre>
+      </div>
+
+      <div class="note-box">
+        <strong>Ultimo valore come return:</strong> l'ultima espressione dello script e il valore restituito per il campo. Non serve <code>return</code>.
+      </div>
+
+      <h3>Regole di sintassi</h3>
+      <table>
+        <tr><th>Cosa</th><th>Comportamento</th></tr>
+        <tr><td>Dichiarazione variabili</td><td>Implicita: non usare <code>let/var/const</code> al livello top, oppure wrappa tutto in <code>{ }</code></td></tr>
+        <tr><td>Valore di ritorno</td><td>L'ultima espressione e il valore. Per null/vuoto usa <code>null</code></td></tr>
+        <tr><td>Console</td><td><code>console.log()</code> e disponibile per debug (vedi output nel test)</td></tr>
+        <tr><td>Oggetti globali</td><td><code>Math</code>, <code>Array</code>, <code>JSON</code>, <code>parseInt</code>, <code>parseFloat</code> disponibili</td></tr>
+        <tr><td>Aggiornamento activity</td><td>Lo script puo modificare <code>activity.icu_training_load</code> e altri campi che vengono salvati</td></tr>
+        <tr><td>Network/IO</td><td>NON disponibili: nessun fetch, nessun accesso filesystem</td></tr>
+      </table>
+    </section>
+
+    <!-- ===== DATA MODEL ===== -->
+    <section id="datamodel">
+      <h2>&#128196; Data Model — L'oggetto <code>icu</code></h2>
+      <p>Tutti gli script hanno accesso all'oggetto <code>icu</code> (caricamento lazy su richiesta) e all'oggetto <code>activity</code> direttamente nel scope.</p>
+
+      <div class="prop-block">
+        <h5>Oggetto icu — Proprieta principali</h5>
+        <div class="prop-row"><span class="prop-name">icu.activity</span><span class="prop-type">Activity</span><span class="prop-desc">L'attivita corrente (stesso oggetto di <code>activity</code> globale)</span></div>
+        <div class="prop-row"><span class="prop-name">icu.athlete</span><span class="prop-type">Athlete</span><span class="prop-desc">Profilo atleta con FTP, LTHR, peso, zone ecc.</span></div>
+        <div class="prop-row"><span class="prop-name">icu.streams</span><span class="prop-type">ActivityStreamSet</span><span class="prop-desc">Tutti gli stream dell'attivita (watts, heartrate, ecc.)</span></div>
+        <div class="prop-row"><span class="prop-name">icu.wellness</span><span class="prop-type">Wellness</span><span class="prop-desc">Record wellness del giorno dell'attivita</span></div>
+        <div class="prop-row"><span class="prop-name">icu.powerCurve</span><span class="prop-type">PowerCurve</span><span class="prop-desc">Curva di potenza (MMP) dell'attivita</span></div>
+        <div class="prop-row"><span class="prop-name">icu.powerCurveFatigued0</span><span class="prop-type">PowerCurve</span><span class="prop-desc">Curva di potenza dopo alcuni kJ di lavoro svolto</span></div>
+        <div class="prop-row"><span class="prop-name">icu.powerCurveFatigued1</span><span class="prop-type">PowerCurve</span><span class="prop-desc">Curva di potenza dopo ancora piu kJ di lavoro</span></div>
+        <div class="prop-row"><span class="prop-name">icu.hrCurve</span><span class="prop-type">HrCurve</span><span class="prop-desc">Curva di frequenza cardiaca (durata vs FC)</span></div>
+        <div class="prop-row"><span class="prop-name">icu.paceCurve</span><span class="prop-type">PaceCurve</span><span class="prop-desc">Curva di passo (distanza vs tempo)</span></div>
+        <div class="prop-row"><span class="prop-name">icu.gapCurve</span><span class="prop-type">PaceCurve</span><span class="prop-desc">Curva di passo con compensazione pendenza (GAP)</span></div>
+        <div class="prop-row"><span class="prop-name">icu.sportSettings</span><span class="prop-type">SportSettings</span><span class="prop-desc">Impostazioni per lo sport dell'attivita</span></div>
+        <div class="prop-row"><span class="prop-name">icu.fit</span><span class="prop-type">FitFile</span><span class="prop-desc">Messaggi raw del file FIT (solo in script "processes fit file messages")</span></div>
+      </div>
+
+      <div class="prop-block">
+        <h5>Oggetto activity — Proprieta principali</h5>
+        <div class="prop-row"><span class="prop-name">activity.id</span><span class="prop-type">string</span><span class="prop-desc">ID attivita (es. "i55751783")</span></div>
+        <div class="prop-row"><span class="prop-name">activity.type</span><span class="prop-type">string</span><span class="prop-desc">Tipo sport: Ride, Run, Swim, ecc.</span></div>
+        <div class="prop-row"><span class="prop-name">activity.icu_ftp</span><span class="prop-type">number</span><span class="prop-desc">FTP al momento dell'attivita (W)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.icu_lthr</span><span class="prop-type">number</span><span class="prop-desc">Soglia lattato FC (bpm)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.icu_resting_hr</span><span class="prop-type">number</span><span class="prop-desc">FC a riposo (bpm)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.athlete_max_hr</span><span class="prop-type">number</span><span class="prop-desc">FC massima atleta (bpm)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.icu_weight</span><span class="prop-type">number</span><span class="prop-desc">Peso atleta al momento dell'attivita (kg)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.average_watts</span><span class="prop-type">number</span><span class="prop-desc">Potenza media attivita (W)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.weighted_average_watts</span><span class="prop-type">number</span><span class="prop-desc">Normalized Power / Weighted Power</span></div>
+        <div class="prop-row"><span class="prop-name">activity.icu_training_load</span><span class="prop-type">number</span><span class="prop-desc">Training Load (modificabile dallo script)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.icu_intensity</span><span class="prop-type">number</span><span class="prop-desc">Intensita relativa (%)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.moving_time</span><span class="prop-type">number</span><span class="prop-desc">Tempo in movimento (secondi)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.distance</span><span class="prop-type">number</span><span class="prop-desc">Distanza totale (metri)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.total_elevation_gain</span><span class="prop-type">number</span><span class="prop-desc">Dislivello positivo (metri)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.average_heartrate</span><span class="prop-type">number</span><span class="prop-desc">FC media (bpm)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.average_speed</span><span class="prop-type">number</span><span class="prop-desc">Velocita media (m/s)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.average_cadence</span><span class="prop-type">number</span><span class="prop-desc">Cadenza media (rpm/spm)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.average_stride</span><span class="prop-type">number</span><span class="prop-desc">Lunghezza passo media (m, nuoto)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.joules</span><span class="prop-type">number</span><span class="prop-desc">Lavoro totale (kJ)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.joules_above_ftp</span><span class="prop-type">number</span><span class="prop-desc">Lavoro sopra FTP (kJ)</span></div>
+        <div class="prop-row"><span class="prop-name">activity.icu_intervals</span><span class="prop-type">Interval[]</span><span class="prop-desc">Array degli intervalli rilevati nell'attivita</span></div>
+      </div>
+
+      <div class="prop-block">
+        <h5>Oggetto interval (solo in Custom Interval Fields)</h5>
+        <div class="prop-row"><span class="prop-name">interval.type</span><span class="prop-type">string</span><span class="prop-desc">WORK, REST, PAUSE, WARMUP, COOLDOWN</span></div>
+        <div class="prop-row"><span class="prop-name">interval.start_index</span><span class="prop-type">number</span><span class="prop-desc">Indice di inizio nello stream</span></div>
+        <div class="prop-row"><span class="prop-name">interval.end_index</span><span class="prop-type">number</span><span class="prop-desc">Indice di fine nello stream</span></div>
+        <div class="prop-row"><span class="prop-name">interval.moving_time</span><span class="prop-type">number</span><span class="prop-desc">Durata in movimento (secondi)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.distance</span><span class="prop-type">number</span><span class="prop-desc">Distanza (metri)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.average_watts</span><span class="prop-type">number</span><span class="prop-desc">Potenza media (W)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.weighted_average_watts</span><span class="prop-type">number</span><span class="prop-desc">NP dell'intervallo (W)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.average_heartrate</span><span class="prop-type">number</span><span class="prop-desc">FC media (bpm)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.average_cadence</span><span class="prop-type">number</span><span class="prop-desc">Cadenza media</span></div>
+        <div class="prop-row"><span class="prop-name">interval.average_speed</span><span class="prop-type">number</span><span class="prop-desc">Velocita media (m/s)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.intensity</span><span class="prop-type">number</span><span class="prop-desc">IF dell'intervallo (%)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.training_load</span><span class="prop-type">number</span><span class="prop-desc">Training load dell'intervallo</span></div>
+        <div class="prop-row"><span class="prop-name">interval.joules</span><span class="prop-type">number</span><span class="prop-desc">Lavoro totale (kJ)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.joules_above_ftp</span><span class="prop-type">number</span><span class="prop-desc">Lavoro sopra FTP (kJ)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.decoupling</span><span class="prop-type">number</span><span class="prop-desc">Decoupling cardiaco (%)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.total_elevation_gain</span><span class="prop-type">number</span><span class="prop-desc">Dislivello (m)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.label</span><span class="prop-type">string</span><span class="prop-desc">Etichetta dell'intervallo (se presente)</span></div>
+        <div class="prop-row"><span class="prop-name">interval.group_id</span><span class="prop-type">string</span><span class="prop-desc">ID gruppo per intervalli ripetuti</span></div>
+      </div>
+    </section>
+
+    <!-- ===== STREAMS LIST ===== -->
+    <section id="streams-list">
+      <h2>&#128268; Streams Disponibili (<code>icu.streams.*</code>)</h2>
+      <p>Gli stream sono accessibili tramite <code>icu.streams.nome_stream</code> e restituiscono un array di valori al secondo.</p>
+
+      <table>
+        <tr><th>Stream</th><th>Descrizione</th><th>Unita</th><th>Note</th></tr>
+        <tr><td><code>time</code></td><td>Secondi dall'inizio attivita</td><td>s</td><td>Sempre presente</td></tr>
+        <tr><td><code>watts</code></td><td>Potenza raw</td><td>W</td><td>Da sensore potenza</td></tr>
+        <tr><td><code>fixed_watts</code></td><td>Potenza con gap interpolati</td><td>W</td><td>Preferibile per calcoli</td></tr>
+        <tr><td><code>heartrate</code></td><td>FC raw</td><td>bpm</td><td></td></tr>
+        <tr><td><code>fixed_heartrate</code></td><td>FC con gap interpolati</td><td>bpm</td><td>Preferibile per calcoli</td></tr>
+        <tr><td><code>cadence</code></td><td>Cadenza raw</td><td>rpm/spm</td><td></td></tr>
+        <tr><td><code>fixed_cadence</code></td><td>Cadenza interpolata</td><td>rpm/spm</td><td></td></tr>
+        <tr><td><code>distance</code></td><td>Distanza progressiva</td><td>m</td><td></td></tr>
+        <tr><td><code>altitude</code></td><td>Altitudine raw</td><td>m</td><td></td></tr>
+        <tr><td><code>fixed_altitude</code></td><td>Altitudine con correzione dislivello</td><td>m</td><td>Usare per VAM</td></tr>
+        <tr><td><code>velocity_smooth</code></td><td>Velocita smoothed</td><td>m/s</td><td></td></tr>
+        <tr><td><code>latlng</code></td><td>Coordinate GPS [lat, lon]</td><td>gradi</td><td>Array di array</td></tr>
+        <tr><td><code>temp</code></td><td>Temperatura ambiente</td><td>gradi C</td><td></td></tr>
+        <tr><td><code>grade_smooth</code></td><td>Pendenza smoothed</td><td>%</td><td></td></tr>
+        <tr><td><code>moving</code></td><td>Atleta in movimento</td><td>boolean</td><td></td></tr>
+        <tr><td><code>core_temperature</code></td><td>Temperatura corporea (Core Temp sensor)</td><td>gradi C</td><td>Se presente nel FIT</td></tr>
+        <tr><td><code>left_right_balance</code></td><td>Bilanciamento sinistra/destra</td><td>%</td><td>Da potenza bilaterale</td></tr>
+        <tr><td><code>platform_center_offset</code></td><td>PCO (Garmin)</td><td>mm</td><td></td></tr>
+        <tr><td><code>respiration_rate</code></td><td>Frequenza respiratoria</td><td>resp/min</td><td>Da Garmin o Tyme Wear</td></tr>
+        <tr><td><code>smo2</code></td><td>Saturazione muscolare O2 (Moxy/BSX)</td><td>%</td><td></td></tr>
+        <tr><td><code>thb</code></td><td>Emoglobina totale (Moxy/BSX)</td><td>g/dL</td><td></td></tr>
+        <tr><td><code>power_hr</code></td><td>Rapporto potenza/FC (EF)</td><td>W/bpm</td><td>Calcolato da Intervals</td></tr>
+        <tr><td><code>vam</code></td><td>Velocita ascensionale media</td><td>m/h</td><td>Calcolato client-side</td></tr>
+      </table>
+
+      <div class="info-box">
+        <strong>Per custom streams JS:</strong> l'oggetto di output e <code>data</code> (un array pre-allocato della lunghezza corretta) e il metodo helper <code>data.setAt(timestamp, valore)</code> per settare un valore a un dato timestamp FIT.
+      </div>
+    </section>
+
+    <!-- ===== CODE COMPLETION ===== -->
+    <section id="codecompletion">
+      <h2>&#128187; Code Completion in VS Code / IntelliJ</h2>
+      <p>Dal 2025 puoi ottenere autocompletamento nel tuo editor preferito.</p>
+
+      <pre><code><span class="cmt"># 1. Crea un progetto npm vuoto</span>
+mkdir intervals-scripts
+cd intervals-scripts
+npm init -y
+
+<span class="cmt"># 2. Installa il data model ufficiale</span>
+npm install @intervals-icu/js-data-model --save
+
+<span class="cmt"># 3. Crea il file Types.ts</span>
+<span class="cmt"># Aggiungi: import { ActivityJsData, Athlete, ... } from '@intervals-icu/js-data-model'</span>
+
+<span class="cmt"># 4. Apri il progetto in VS Code o IntelliJ</span>
+<span class="cmt"># Il code completion funzionerà automaticamente</span>
+
+<span class="cmt"># Aggiornare il data model</span>
+npm install @intervals-icu/js-data-model@latest --save</code></pre>
+
+      <div class="note-box">
+        Il pacchetto npm include interfacce TypeScript per <code>ActivityJsData</code>, <code>Activity</code>, <code>Athlete</code>, <code>Interval</code>, <code>ActivityStreamSet</code>, <code>JsChartData</code>, <code>JsStreamData</code> e molto altro.
+      </div>
+    </section>
+
+    <!-- ===== WELLNESS FIELDS ===== -->
+    <section id="wellness-fields">
+      <h2>1 — Custom Wellness Fields</h2>
+      <p>Aggiungi campi di input personalizzati al diario giornaliero. <strong>Non richiedono codice JS</strong> — solo configurazione. Possono essere condivisi con la community e plotted su Fitness e Compare.</p>
+
+      <h3>Come creare un campo wellness</h3>
+      <p>Vai su <strong>Add Wellness Entry &rarr; Fields &rarr; + (aggiungi)</strong> oppure cerca campi condivisi da altri atleti.</p>
+
+      <table>
+        <tr><th>Proprieta campo</th><th>Descrizione</th></tr>
+        <tr><td><strong>Name</strong></td><td>Nome visualizzato nell'interfaccia</td></tr>
+        <tr><td><strong>Code</strong></td><td>Identificatore CamelCase univoco (es. <code>MuscleStiffness</code>). Usato nell'API e nei plot. <strong>Non cambiare dopo uso.</strong> Non puo iniziare con numero. I campi built-in iniziano con lettera minuscola.</td></tr>
+        <tr><td><strong>Type</strong></td><td>Number, Text, Select (mappa testo a numero)</td></tr>
+        <tr><td><strong>Units</strong></td><td>Unita di misura visualizzate</td></tr>
+        <tr><td><strong>Icon</strong></td><td>Emoji o icona da Material Icons mostrata nel calendario</td></tr>
+        <tr><td><strong>Min/Max</strong></td><td>Valori minimo e massimo accettati</td></tr>
+        <tr><td><strong>Aggregate</strong></td><td>Come combinare piu valori nello stesso giorno: sum, min, max, average</td></tr>
+        <tr><td><strong>Shared</strong></td><td>Se condividere con la community (mantenendo codice comune per compatibilita)</td></tr>
+      </table>
+
+      <div class="warn-box">
+        <strong>Codice CamelCase:</strong> il codice DEVE essere CamelCase e non puo iniziare con un numero. Due campi con lo stesso codice sono considerati lo stesso campo — ottimo per condividere chart e script tra atleti.
+      </div>
+
+      <h3>Tipo Select (mappa testo/numero)</h3>
+      <p>Il tipo Select permette di mostrare opzioni testuali che vengono salvate come numeri. Utile per scale Likert (benessere, fatica, dolore):</p>
+
+      <table>
+        <tr><th>Testo mostrato</th><th>Valore salvato</th></tr>
+        <tr><td>Ottimo</td><td>4</td></tr>
+        <tr><td>Buono</td><td>3</td></tr>
+        <tr><td>Discreto</td><td>2</td></tr>
+        <tr><td>Scarso</td><td>1</td></tr>
+      </table>
+
+      <h3>Accesso via API</h3>
+      <pre><code><span class="cmt"># Leggere valore custom field nel wellness</span>
+<span class="kw">curl</span> -u API_KEY:&lt;k&gt; 'https://intervals.icu/api/v1/athlete/0/wellness/2025-02-17'
+<span class="cmt"># La risposta include: {"weight":70.2, "MuscleStiffness": 2, ...}</span>
+
+<span class="cmt"># Scrivere un valore custom</span>
+<span class="kw">curl</span> -X PUT 'https://intervals.icu/api/v1/athlete/0/wellness/2025-02-17' \
+  -d '{"MuscleStiffness": 3, "StressLevel": 2}'</code></pre>
+    </section>
+
+    <!-- ===== ACTIVITY FIELDS ===== -->
+    <section id="activity-fields">
+      <h2>2 — Custom Activity Fields</h2>
+      <p>Campi personalizzati mostrati insieme al riepilogo attivita e disponibili come colonne nella lista attivita.</p>
+
+      <p>Vai su <strong>Activity &rarr; Custom (sotto il grafico timeline)</strong>. Tre modalita:</p>
+      <ul style="margin: 12px 0 16px 24px; color: #475569; line-height: 2;">
+        <li><strong>Manual</strong> — inserisci il valore a mano</li>
+        <li><strong>Computed (JS)</strong> — calcolato automaticamente da JavaScript quando l'attivita viene analizzata</li>
+        <li><strong>FIT file field</strong> — mappa a un campo del messaggio session/device/record del FIT file</li>
+      </ul>
+
+      <h3>Configurazione campo</h3>
+      <table>
+        <tr><th>Proprieta</th><th>Descrizione</th></tr>
+        <tr><td><strong>Code</strong></td><td>CamelCase, univoco, non cambiare dopo uso</td></tr>
+        <tr><td><strong>Type</strong></td><td>Number, Text, Select</td></tr>
+        <tr><td><strong>Units</strong></td><td>Per conversioni automatiche: <code>m/s</code>, <code>m</code>, <code>s</code>, <code>W</code>, ecc.</td></tr>
+        <tr><td><strong>Conversion</strong></td><td>Converti automaticamente per display (es. m/s &rarr; km/h, m &rarr; km, s &rarr; min:ss)</td></tr>
+        <tr><td><strong>Aggregate</strong></td><td>Per plot su fitness: sum, min, max, average per piu attivita nello stesso giorno</td></tr>
+        <tr><td><strong>FIT field</strong></td><td>Nome o numero del campo FIT nel messaggio session (es. <code>total_training_effect</code>). Prefissa con nome record per cercare altrove: <code>set.weight</code></td></tr>
+      </table>
+    </section>
+
+    <!-- ===== COMPUTED FIELDS ===== -->
+    <section id="computed-fields">
+      <h2>2b — Computed Activity Fields (JavaScript)</h2>
+      <p>Script JS che calcolano un valore per l'intera attivita. Girano quando l'attivita viene analizzata o re-analizzata.</p>
+
+      <div class="note-box">
+        Lo script PUO anche modificare campi dell'attivita come <code>activity.icu_training_load</code> per implementare metriche personalizzate di carico.
+      </div>
+
+      <h3>Oggetti disponibili</h3>
+      <table>
+        <tr><th>Oggetto</th><th>Tipo</th><th>Descrizione</th></tr>
+        <tr><td><code>activity</code></td><td>Activity</td><td>L'attivita corrente (lettura e scrittura)</td></tr>
+        <tr><td><code>field</code></td><td>CustomField</td><td>La definizione del campo che si sta calcolando</td></tr>
+        <tr><td><code>icu</code></td><td>ActivityJsData</td><td>Accesso lazy a streams, wellness, powerCurve, ecc.</td></tr>
+        <tr><td><code>streams</code></td><td>ActivityStreamSet</td><td>Alias di <code>icu.streams</code></td></tr>
+      </table>
+
+      <div class="example-tag">Esempio — EF (Efficienza) = Potenza media / FC media</div>
+      <pre><code>activity.average_watts / activity.average_heartrate</code></pre>
+
+      <div class="example-tag">Esempio — Potenza per kg</div>
+      <pre><code>activity.average_watts / activity.icu_weight</code></pre>
+
+      <div class="example-tag">Esempio — Carico allenamento personalizzato (con scrittura activity)</div>
+      <pre><code>{
+  <span class="cmt">// Custom training load basato su zona cardiaca</span>
+  hrStream = icu.streams.fixed_heartrate
+  lthr = activity.icu_lthr
+  movingTime = activity.moving_time
+  
+  zoneTime = [<span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>]
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i < hrStream.length; i++) {
+    hr = hrStream[i]
+    <span class="kw">if</span> (!hr) <span class="kw">continue</span>
+    ratio = hr / lthr
+    zone = ratio < <span class="num">0.81</span> ? <span class="num">0</span> : ratio < <span class="num">0.89</span> ? <span class="num">1</span> : ratio < <span class="num">0.94</span> ? <span class="num">2</span> : ratio < <span class="num">1.0</span> ? <span class="num">3</span> : <span class="num">4</span>
+    zoneTime[zone]++
+  }
+  
+  <span class="cmt">// Pesi Coggan: Z1=1, Z2=2, Z3=3, Z4=4, Z5=7</span>
+  weights = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">7</span>]
+  load = zoneTime.reduce((<span class="var">acc</span>, <span class="var">t</span>, <span class="var">z</span>) => acc + t * weights[z], <span class="num">0</span>) / <span class="num">3600</span>
+  
+  activity.icu_training_load = load
+  load
+}</code></pre>
+
+      <div class="example-tag">Esempio — Accesso a PowerCurve (potenza a 5 minuti)</div>
+      <pre><code>{
+  <span class="kw">let</span> pc = icu.powerCurve
+  <span class="cmt">// powerCurve.watts(durationSeconds) restituisce la potenza massima per quella durata</span>
+  <span class="kw">let</span> p5min = pc ? pc.watts(<span class="num">300</span>) : null
+  p5min
+}</code></pre>
+
+      <div class="example-tag">Esempio — Lettura wellness del giorno dell'attivita</div>
+      <pre><code>{
+  <span class="kw">let</span> w = icu.wellness
+  <span class="cmt">// Esempio: ratio FC riposo / HRV come indicatore forma</span>
+  w && w.hrv ? w.restingHR / w.hrv : null
+}</code></pre>
+    </section>
+
+    <!-- ===== FIT FIELDS ===== -->
+    <section id="fit-fields">
+      <h2>2c — Campi da FIT file (session fields)</h2>
+      <p>Senza scrivere codice, puoi mappare un campo del file FIT a un custom activity field. Il campo viene popolato automaticamente ad ogni upload/re-analisi.</p>
+
+      <div class="info-box">
+        <strong>Come funziona:</strong> nel campo "FIT field" del custom activity field, inserisci il nome o numero del campo FIT. Di default cerca nel messaggio <code>session</code>. Puoi prefissare con il nome del record per cercare altrove:<br>
+        <code>set.weight</code> — campo <em>weight</em> nel messaggio <em>set</em> (weight training)<br>
+        <code>device_info.manufacturer</code> — produttore del dispositivo<br>
+        <code>255.13</code> — campo numero 13 nel record tipo 255
+      </div>
+
+      <h3>Campi session FIT comuni</h3>
+      <table>
+        <tr><th>Nome FIT</th><th>Descrizione</th></tr>
+        <tr><td><code>total_training_effect</code></td><td>Training Effect aerobico (Garmin)</td></tr>
+        <tr><td><code>total_anaerobic_training_effect</code></td><td>Training Effect anaerobico (Garmin)</td></tr>
+        <tr><td><code>avg_left_right_balance</code></td><td>Bilanciamento medio sinistra/destra</td></tr>
+        <tr><td><code>avg_left_pedal_smoothness</code></td><td>Smoothness pedalata sinistra</td></tr>
+        <tr><td><code>avg_left_torque_effectiveness</code></td><td>Torque Effectiveness sinistra</td></tr>
+        <tr><td><code>avg_stance_time</code></td><td>Tempo di appoggio medio (running)</td></tr>
+        <tr><td><code>avg_vertical_oscillation</code></td><td>Oscillazione verticale media (running)</td></tr>
+        <tr><td><code>avg_step_length</code></td><td>Lunghezza passo media (running)</td></tr>
+        <tr><td><code>avg_ground_contact_balance</code></td><td>Bilanciamento contatto suolo</td></tr>
+        <tr><td><code>total_grit</code></td><td>Grit index (Firstbeat)</td></tr>
+        <tr><td><code>avg_flow</code></td><td>Flow score (MTB, Garmin)</td></tr>
+        <tr><td><code>jump_count</code></td><td>Numero salti rilevati</td></tr>
+      </table>
+    </section>
+
+    <!-- ===== FIT MESSAGES ===== -->
+    <section id="fit-messages">
+      <h2>2d — Campi calcolati da messaggi FIT</h2>
+      <p>Per casi avanzati, puoi processare <strong>tutti i messaggi</strong> del file FIT (non solo session/record). Abilita l'opzione "Processes fit file messages" nel campo.</p>
+
+      <div class="warn-box">
+        Questi script girano solo al primo caricamento o al re-processing del file (non alla semplice re-analisi). <code>icu.fit</code> contiene un array di tutti i messaggi del FIT.
+      </div>
+
+      <div class="example-tag">Esempio — Estrarre device info (HRM brand)</div>
+      <pre><code>{
+  <span class="kw">let</span> hrm
+  <span class="kw">for</span> (<span class="kw">let</span> di <span class="kw">of</span> icu.fit.device_info) {
+    <span class="kw">if</span> (di.device_type?.value !== <span class="num">120</span> <span class="cmt">/* HEART_RATE */</span>) <span class="kw">continue</span>
+    hrm = di.manufacturer?.valueName
+    <span class="kw">break</span>
+  }
+  hrm
+}</code></pre>
+
+      <div class="example-tag">Esempio — Contare totale salti da messaggi jump</div>
+      <pre><code>{
+  count = <span class="num">0</span>
+  <span class="kw">for</span> (<span class="kw">let</span> m <span class="kw">of</span> icu.fit) {
+    <span class="kw">if</span> (m.jump_count) count += m.jump_count.value
+  }
+  count > <span class="num">0</span> ? count : null
+}</code></pre>
+    </section>
+
+    <!-- ===== INTERVAL FIELDS ===== -->
+    <section id="interval-fields">
+      <h2>3 — Custom Interval Fields</h2>
+      <p>Come i computed activity fields, ma calcolati per ogni singolo intervallo. Hai accesso all'oggetto <code>interval</code> con start/end index per iterare sugli stream nell'intervallo.</p>
+
+      <h3>Oggetti disponibili (in piu rispetto ad activity fields)</h3>
+      <table>
+        <tr><th>Oggetto</th><th>Descrizione</th></tr>
+        <tr><td><code>interval</code></td><td>L'intervallo corrente con tutti i suoi dati (vedi tabella sopra)</td></tr>
+        <tr><td><code>activity</code></td><td>L'attivita padre</td></tr>
+        <tr><td><code>icu.streams</code></td><td>Stream completi dell'attivita (usa start/end_index per il subset)</td></tr>
+      </table>
+
+      <div class="note-box">
+        Lo script e chiamato <strong>una volta per ogni intervallo</strong> nel medesimo sandbox. <strong>Non dichiarare variabili con let/var al top level</strong> — usa blocchi <code>{ }</code> o variabili implicite.
+      </div>
+
+      <div class="example-tag">Esempio — Distanza per bracciata (nuoto)</div>
+      <pre><code>interval.average_stride * <span class="num">2</span></code></pre>
+
+      <div class="example-tag">Esempio — % Lavoro sopra FTP</div>
+      <pre><code>interval.joules_above_ftp * <span class="num">100</span> / interval.joules</code></pre>
+
+      <div class="example-tag">Esempio — EF (Efficienza) media dell'intervallo</div>
+      <pre><code>{
+  <span class="kw">let</span> mhr = activity.athlete_max_hr
+  <span class="kw">let</span> rhr = activity.icu_resting_hr
+  <span class="kw">let</span> hr = icu.streams.fixed_heartrate
+  <span class="kw">let</span> power = icu.streams.fixed_watts
+  <span class="kw">let</span> tot = <span class="num">0</span>, c = <span class="num">0</span>
+  <span class="kw">for</span> (<span class="kw">let</span> i = interval.start_index; i < interval.end_index; i++) {
+    <span class="kw">let</span> v = power[i] / (((hr[i] - rhr) / (mhr - rhr)) * <span class="num">100</span>)
+    <span class="kw">if</span> (v && isFinite(v)) { tot += v; c++ }
+  }
+  c ? tot / c : null
+}</code></pre>
+
+      <div class="example-tag">Esempio — Temperatura core media nell'intervallo</div>
+      <pre><code>{
+  <span class="kw">let</span> temp = icu.streams.core_temperature
+  <span class="kw">if</span> (!temp) null
+  <span class="kw">else</span> {
+    <span class="kw">let</span> tot = <span class="num">0</span>, c = <span class="num">0</span>
+    <span class="kw">for</span> (<span class="kw">let</span> i = interval.start_index; i < interval.end_index; i++) {
+      <span class="kw">if</span> (temp[i]) { tot += temp[i]; c++ }
+    }
+    c ? tot / c : null
+  }
+}</code></pre>
+
+      <div class="example-tag">Esempio — Tempo di corsa vs tempo totale (%)</div>
+      <pre><code>{
+  <span class="kw">let</span> cad = icu.streams.cadence
+  <span class="kw">let</span> runCount = <span class="num">0</span>, total = <span class="num">0</span>
+  <span class="kw">for</span> (<span class="kw">let</span> i = interval.start_index; i < interval.end_index; i++) {
+    total++
+    <span class="kw">if</span> (cad[i] >= <span class="num">60</span>) runCount++
+  }
+  total > <span class="num">0</span> ? (runCount / total) * <span class="num">100</span> : null
+}</code></pre>
+    </section>
+
+    <!-- ===== CUSTOM STREAMS ===== -->
+    <section id="custom-streams">
+      <h2>4a — Custom Streams da record FIT</h2>
+      <p>Estrai un campo da ogni messaggio <code>record</code> del FIT file (i dati al secondo) senza scrivere codice. Inserisci solo il nome del campo nel campo "Record field".</p>
+
+      <div class="info-box">
+        I messaggi <code>record</code> sono quelli che contengono i dati timestampati registrati ogni secondo dal dispositivo. Esempi di campi record non standard: <code>SmO2</code>, <code>tHb</code>, <code>respiration_rate</code>, <code>skin_temp</code>, campi developer Wahoo/Garmin.
+      </div>
+
+      <p>Va su <strong>Charts &rarr; Custom Streams &rarr; Add Stream</strong>, scegli "Record Field" e inserisci il nome (case-sensitive, come nel file FIT).</p>
+    </section>
+
+    <section id="js-streams">
+      <h2>4b — Custom Streams calcolati con JavaScript</h2>
+      <p>Crea nuovi stream a partire da stream esistenti, dati atleta, wellness ecc. Lo script popola l'array <code>data</code> con un valore per ogni secondo.</p>
+
+      <div class="warn-box">
+        Questi script sono <strong>ricalcolati ad ogni re-analisi</strong> (non richiedono il file FIT). Quindi NON hanno accesso a <code>icu.fit</code>.
+      </div>
+
+      <h3>Oggetti disponibili</h3>
+      <table>
+        <tr><th>Oggetto</th><th>Tipo</th><th>Descrizione</th></tr>
+        <tr><td><code>data</code></td><td>JsStreamData</td><td>Array output da riempire (lunghezza = durata attivita in secondi)</td></tr>
+        <tr><td><code>data.time</code></td><td>number[]</td><td>Array dei timestamp (secondi dall'inizio)</td></tr>
+        <tr><td><code>data.startTimestamp</code></td><td>number</td><td>Timestamp FIT assoluto dell'inizio attivita</td></tr>
+        <tr><td><code>data.setAt(ts, val)</code></td><td>method</td><td>Setta il valore per un dato timestamp FIT assoluto</td></tr>
+        <tr><td><code>activity</code></td><td>Activity</td><td>L'attivita corrente</td></tr>
+        <tr><td><code>icu.streams</code></td><td>ActivityStreamSet</td><td>Tutti gli stream disponibili</td></tr>
+        <tr><td><code>icu.wellness</code></td><td>Wellness</td><td>Wellness del giorno</td></tr>
+        <tr><td><code>icu.athlete</code></td><td>Athlete</td><td>Profilo atleta</td></tr>
+      </table>
+
+      <div class="example-tag">Esempio — Potenza per FC (EF stream)</div>
+      <pre><code>{
+  <span class="kw">let</span> heartrate = icu.streams.fixed_heartrate
+  <span class="kw">let</span> watts = icu.streams.fixed_watts
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i < data.length; i++) {
+    data[i] = watts[i] / heartrate[i]
+  }
+}</code></pre>
+
+      <div class="example-tag">Esempio — Potenza stimata da VAM su salita</div>
+      <pre><code>{
+  <span class="kw">let</span> weight = activity.icu_weight  <span class="cmt">// kg</span>
+  <span class="kw">let</span> alt = icu.streams.fixed_altitude
+  <span class="kw">let</span> grade = icu.streams.grade_smooth
+  
+  <span class="cmt">// Formula: P/kg = VAM / (200 + 10 * grade%)</span>
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">1</span>; i < data.length; i++) {
+    <span class="kw">let</span> vam = (alt[i] - alt[i-<span class="num">1</span>]) * <span class="num">3600</span>  <span class="cmt">// m/h</span>
+    <span class="kw">let</span> g = grade[i] || <span class="num">0</span>
+    <span class="kw">if</span> (g > <span class="num">2</span>) {
+      data[i] = (vam / (<span class="num">200</span> + <span class="num">10</span> * g)) * weight
+    } <span class="kw">else</span> {
+      data[i] = null
+    }
+  }
+}</code></pre>
+
+      <div class="example-tag">Esempio — Frequenza cardiaca di riserva % (HRR%)</div>
+      <pre><code>{
+  <span class="kw">let</span> mhr = activity.athlete_max_hr
+  <span class="kw">let</span> rhr = activity.icu_resting_hr
+  <span class="kw">let</span> hr = icu.streams.fixed_heartrate
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i < data.length; i++) {
+    data[i] = hr[i] ? ((hr[i] - rhr) / (mhr - rhr)) * <span class="num">100</span> : null
+  }
+}</code></pre>
+    </section>
+
+    <section id="fit-streams">
+      <h2>4c — Custom Streams da messaggi FIT arbitrari</h2>
+      <p>Per stream che richiedono messaggi FIT diversi dal <code>record</code> (es. gear_change, dive_summary, length, ecc.). Abilita "Processes fit file messages". Questi script girano solo al (re-)processing del file.</p>
+
+      <div class="example-tag">Esempio — Stream marcia posteriore (Di2/eTap)</div>
+      <pre><code>{
+  <span class="kw">let</span> rear_gear
+  
+  <span class="fn">function</span> fixValue(value) {
+    value = Array.isArray(value) ? value[<span class="num">0</span>] : value
+    <span class="kw">return</span> value === <span class="num">0</span> ? null : value
+  }
+  
+  <span class="kw">for</span> (<span class="kw">let</span> m <span class="kw">of</span> icu.fit) {
+    <span class="kw">switch</span> (m.event?.valueName) {
+      <span class="kw">case</span> <span class="str">"REAR_GEAR_CHANGE"</span>:
+      <span class="kw">case</span> <span class="str">"FRONT_GEAR_CHANGE"</span>:
+        rear_gear = fixValue(m.rear_gear?.value)
+        <span class="kw">break</span>
+    }
+    <span class="kw">let</span> ts = m.timestamp
+    <span class="kw">if</span> (ts) data.setAt(ts.value, rear_gear)
+  }
+}</code></pre>
+
+      <div class="example-tag">Esempio — Estrarre FC da record messages (base)</div>
+      <pre><code>{
+  <span class="kw">for</span> (<span class="kw">let</span> m <span class="kw">of</span> icu.fit.record) {
+    <span class="kw">if</span> (m.heart_rate) {
+      data.setAt(m.timestamp.value, m.heart_rate.value)
+    }
+  }
+}</code></pre>
+    </section>
+
+    <!-- ===== ACTIVITY CHARTS ===== -->
+    <section id="activity-charts">
+      <h2>5 — Custom Activity Charts (Plotly)</h2>
+      <p>Aggiungi grafici completamente personalizzati nelle pagine <strong>HR, Power, Pace, Data</strong> dell'attivita usando <a href="https://plotly.com/javascript/" style="color:#4338ca;">Plotly.js</a>. I chart sono salvati per sport.</p>
+
+      <div class="info-box">
+        Puoi usare qualsiasi tipo di grafico Plotly: bar, scatter, line, heatmap, pie, 3D, ecc. Puoi avere piu trace nello stesso chart. Puoi cercare e aggiungere chart condivisi da altri atleti.
+      </div>
+
+      <h3>Oggetti disponibili</h3>
+      <table>
+        <tr><th>Oggetto</th><th>Tipo</th><th>Descrizione</th></tr>
+        <tr><td><code>activity</code></td><td>Activity</td><td>L'attivita corrente</td></tr>
+        <tr><td><code>icu.streams</code></td><td>ActivityStreamSet</td><td>Tutti gli stream</td></tr>
+        <tr><td><code>icu.athlete</code></td><td>Athlete</td><td>Profilo atleta</td></tr>
+        <tr><td><code>icu.wellness</code></td><td>Wellness</td><td>Wellness del giorno</td></tr>
+        <tr><td><code>icu.powerCurve</code></td><td>PowerCurve</td><td>MMP curve</td></tr>
+        <tr><td><code>icu.hrCurve</code></td><td>HrCurve</td><td>HR curve</td></tr>
+        <tr><td><code>icu.paceCurve</code></td><td>PaceCurve</td><td>Pace curve</td></tr>
+        <tr><td><code>icu.sportSettings</code></td><td>SportSettings</td><td>Impostazioni sport attivita</td></tr>
+        <tr><td><code>chart</code></td><td>object</td><td>Oggetto da valorizzare con <code>{ data, layout }</code> Plotly</td></tr>
+      </table>
+
+      <div class="note-box">
+        Lo script deve assegnare <code>chart = { data, layout }</code> dove <code>data</code> e l'array di trace Plotly e <code>layout</code> e l'oggetto di layout.
+      </div>
+
+      <div class="example-tag">Esempio — Potenza media per intervallo di lavoro (bar chart)</div>
+      <pre><code>{
+  <span class="kw">let</span> x = [], y = []
+  <span class="kw">let</span> intervals = activity.icu_intervals || []
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>, c = <span class="num">0</span>; i < intervals.length; i++) {
+    <span class="kw">let</span> iv = intervals[i]
+    <span class="kw">if</span> (iv.type !== <span class="str">'WORK'</span>) <span class="kw">continue</span>
+    ++c
+    x.push(iv.label || c)
+    y.push(iv.average_watts)
+  }
+
+  chart = {
+    data: [{
+      x, y,
+      type: <span class="str">'bar'</span>,
+      marker: { color: <span class="str">'#6366f1'</span>, opacity: <span class="num">0.8</span> }
+    }],
+    layout: {
+      title: { text: <span class="str">"Potenza media per intervallo"</span> },
+      margin: { l: <span class="num">40</span>, r: <span class="num">20</span>, t: <span class="num">40</span>, b: <span class="num">30</span> }
+    }
+  }
+}</code></pre>
+
+      <div class="example-tag">Esempio — FC vs Potenza scatter (quadrante per intervallo)</div>
+      <pre><code>{
+  <span class="kw">let</span> intervals = (activity.icu_intervals || []).filter(<span class="var">iv</span> => iv.type === <span class="str">'WORK'</span>)
+  <span class="kw">let</span> x = intervals.map(<span class="var">iv</span> => iv.average_watts)
+  <span class="kw">let</span> y = intervals.map(<span class="var">iv</span> => iv.average_heartrate)
+  <span class="kw">let</span> text = intervals.map((<span class="var">iv</span>, <span class="var">i</span>) => <span class="str">`Rep ${i+1}`</span>)
+
+  chart = {
+    data: [{
+      x, y, text,
+      mode: <span class="str">'markers+text'</span>,
+      type: <span class="str">'scatter'</span>,
+      textposition: <span class="str">'top center'</span>,
+      marker: { size: <span class="num">10</span>, color: <span class="str">'#e94560'</span> }
+    }],
+    layout: {
+      xaxis: { title: <span class="str">'Potenza (W)'</span> },
+      yaxis: { title: <span class="str">'FC (bpm)'</span> },
+      title: { text: <span class="str">'FC vs Potenza per intervallo'</span> }
+    }
+  }
+}</code></pre>
+
+      <div class="example-tag">Esempio — Distribuzione del tempo nelle zone di potenza (pie)</div>
+      <pre><code>{
+  <span class="kw">let</span> watts = icu.streams.fixed_watts
+  <span class="kw">let</span> ftp = activity.icu_ftp
+  <span class="kw">let</span> zones = [<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>]
+  <span class="kw">let</span> labels = [<span class="str">'Z1 Rec'</span>,<span class="str">'Z2 End'</span>,<span class="str">'Z3 Tempo'</span>,<span class="str">'Z4 Soglia'</span>,<span class="str">'Z5 VO2'</span>,<span class="str">'Z6 Anaer'</span>,<span class="str">'Z7 Neuro'</span>]
+  <span class="kw">let</span> pcts = [<span class="num">0.55</span>,<span class="num">0.75</span>,<span class="num">0.90</span>,<span class="num">1.05</span>,<span class="num">1.20</span>,<span class="num">1.50</span>,Infinity]
+
+  <span class="kw">for</span> (<span class="kw">let</span> w <span class="kw">of</span> watts) {
+    <span class="kw">if</span> (!w) <span class="kw">continue</span>
+    <span class="kw">let</span> ratio = w / ftp
+    <span class="kw">let</span> z = pcts.findIndex(<span class="var">p</span> => ratio <= p)
+    <span class="kw">if</span> (z >= <span class="num">0</span>) zones[z]++
+  }
+
+  chart = {
+    data: [{ values: zones, labels, type: <span class="str">'pie'</span>, hole: <span class="num">0.4</span> }],
+    layout: { title: <span class="str">'Distribuzione zone di potenza'</span> }
+  }
+}</code></pre>
+
+      <div class="example-tag">Esempio — Passo per intervallo (running)</div>
+      <pre><code>{
+  <span class="kw">let</span> x = [], y = [], text = []
+  <span class="kw">let</span> intervals = activity.icu_intervals || []
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>, c = <span class="num">0</span>; i < intervals.length; i++) {
+    <span class="kw">let</span> iv = intervals[i]
+    <span class="kw">if</span> (iv.type !== <span class="str">'WORK'</span>) <span class="kw">continue</span>
+    ++c
+    x.push(iv.label ? <span class="str">`${c}-${iv.label}`</span> : c)
+    <span class="kw">let</span> pace = <span class="num">60</span> / (iv.average_speed * <span class="num">3.6</span>)
+    y.push(pace)
+    <span class="kw">let</span> min = Math.floor(pace)
+    <span class="kw">let</span> secs = Math.round((pace - min) * <span class="num">60</span>)
+    text.push(<span class="str">`${min}:${('0'+secs).slice(-2)} min/km`</span>)
+  }
+
+  chart = {
+    data: [{ x, y, text, type: <span class="str">'bar'</span>, marker: { color: <span class="str">'#0ea5e9'</span> } }],
+    layout: {
+      title: { text: <span class="str">"Passo medio per intervallo"</span> },
+      yaxis: { range: [Math.min(...y)-<span class="num">0.3</span>, Math.max(...y)+<span class="num">0.1</span>],
+               tickformat: <span class="str">'~f'</span> }
+    }
+  }
+}</code></pre>
+    </section>
+
+    <!-- ===== FITNESS CHARTS ===== -->
+    <section id="fitness-charts">
+      <h2>6 — Custom Fitness Charts</h2>
+      <p>Aggiungi plot personalizzati sulla pagina <strong>Fitness</strong> e <strong>Compare</strong>. Puoi plottare campi wellness personalizzati, custom activity fields (aggregati per giorno) e metriche calcolate.</p>
+
+      <div class="info-box">
+        Per aggiungere un custom activity field al grafico fitness: vai su Fitness &rarr; Add Plot &rarr; cerca il nome del tuo campo. Il valore viene aggregato se ci sono piu attivita nello stesso giorno (secondo la modalita <strong>aggregate</strong> configurata nel campo: sum, min, max, average).
+      </div>
+
+      <div class="note-box">
+        Se stai visualizzando un atleta che alleni, devi prima aggiungere i tuoi campi a quell'atleta (vai su una loro attivita &rarr; Custom &rarr; cerca il campo). Solo dopo apparira nella lista dei plot fitness.
+      </div>
+    </section>
+
+    <!-- ===== ESEMPI FIELDS ===== -->
+    <section id="esempi-fields">
+      <h2>&#128215; Libreria esempi — Campi attivita</h2>
+
+      <div class="example-tag">Potenza/Peso (W/kg)</div>
+      <pre><code>activity.average_watts / activity.icu_weight</code></pre>
+
+      <div class="example-tag">Efficienza aerobica (Aerobic Efficiency)</div>
+      <pre><code>activity.average_watts / activity.average_heartrate</code></pre>
+
+      <div class="example-tag">Decoupling cardiaco (Pa:HR) — attivita corsa</div>
+      <pre><code>{
+  <span class="cmt">// Confronta EF prima meta vs seconda meta</span>
+  <span class="kw">let</span> hr = icu.streams.fixed_heartrate
+  <span class="kw">let</span> speed = icu.streams.velocity_smooth
+  <span class="kw">let</span> mid = Math.floor(hr.length / <span class="num">2</span>)
+  
+  <span class="kw">function</span> ef(start, end) {
+    <span class="kw">let</span> s=<span class="num">0</span>, h=<span class="num">0</span>, c=<span class="num">0</span>
+    <span class="kw">for</span>(<span class="kw">let</span> i=start; i<end; i++) <span class="kw">if</span>(hr[i]&&speed[i]) { s+=speed[i]; h+=hr[i]; c++ }
+    <span class="kw">return</span> c ? s/c / (h/c) : null
+  }
+  
+  <span class="kw">let</span> ef1 = ef(<span class="num">0</span>, mid), ef2 = ef(mid, hr.length)
+  ef1 ? ((ef2-ef1)/ef1)*<span class="num">100</span> : null
+}</code></pre>
+
+      <div class="example-tag">Cattura Training Effect da FIT (Garmin)</div>
+      <pre><code><span class="cmt">// Senza codice! Usa FIT field: "total_training_effect"</span></code></pre>
+
+      <div class="example-tag">TSS stimato da FC (senza misuratore potenza)</div>
+      <pre><code>{
+  <span class="kw">let</span> hr = icu.streams.fixed_heartrate
+  <span class="kw">let</span> lthr = activity.icu_lthr
+  <span class="kw">let</span> t = activity.moving_time / <span class="num">3600</span>  <span class="cmt">// ore</span>
+  <span class="kw">let</span> hrss_sum = <span class="num">0</span>, c = <span class="num">0</span>
+  <span class="kw">for</span> (<span class="kw">let</span> h <span class="kw">of</span> hr) {
+    <span class="kw">if</span> (h) { hrss_sum += h; c++ }
+  }
+  <span class="kw">let</span> avg_hr = hrss_sum / c
+  <span class="kw">let</span> if_hr = avg_hr / lthr
+  t * if_hr * if_hr * <span class="num">100</span>
+}</code></pre>
+    </section>
+
+    <!-- ===== ESEMPI STREAMS ===== -->
+    <section id="esempi-streams">
+      <h2>&#128215; Libreria esempi — Streams</h2>
+
+      <div class="example-tag">HR Reserve % (per zona allenamento cardiaco)</div>
+      <pre><code>{
+  <span class="kw">let</span> mhr = activity.athlete_max_hr
+  <span class="kw">let</span> rhr = activity.icu_resting_hr
+  <span class="kw">let</span> hr = icu.streams.fixed_heartrate
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i < data.length; i++)
+    data[i] = hr[i] ? ((hr[i]-rhr)/(mhr-rhr))*<span class="num">100</span> : null
+}</code></pre>
+
+      <div class="example-tag">Potenza stimata da VAM (solo su salite &gt;2%)</div>
+      <pre><code>{
+  <span class="kw">let</span> alt = icu.streams.fixed_altitude
+  <span class="kw">let</span> grade = icu.streams.grade_smooth
+  <span class="kw">let</span> weight = activity.icu_weight
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">1</span>; i < data.length; i++) {
+    <span class="kw">let</span> vam = (alt[i] - alt[i-<span class="num">1</span>]) * <span class="num">3600</span>
+    <span class="kw">let</span> g = grade[i] || <span class="num">0</span>
+    data[i] = g > <span class="num">2</span> ? (vam / (<span class="num">200</span> + <span class="num">10</span>*g)) * weight : null
+  }
+}</code></pre>
+
+      <div class="example-tag">Smoothed rolling average su FC (finestra 30s)</div>
+      <pre><code>{
+  <span class="kw">let</span> hr = icu.streams.heartrate
+  <span class="kw">let</span> W = <span class="num">30</span>  <span class="cmt">// finestra in secondi</span>
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i < data.length; i++) {
+    <span class="kw">let</span> start = Math.max(<span class="num">0</span>, i - W)
+    <span class="kw">let</span> slice = hr.slice(start, i+<span class="num">1</span>).filter(Boolean)
+    data[i] = slice.length ? slice.reduce((a,b)=>a+b,<span class="num">0</span>)/slice.length : null
+  }
+}</code></pre>
+    </section>
+
+    <!-- ===== ESEMPI CHARTS ===== -->
+    <section id="esempi-charts">
+      <h2>&#128215; Libreria esempi — Charts avanzati</h2>
+
+      <div class="example-tag">Heatmap marcia selezionata nel tempo (Di2/eTap)</div>
+      <pre><code>{
+  <span class="cmt">// Richiede custom stream Di2 (vedi sezione fit-streams)</span>
+  <span class="kw">let</span> time = icu.streams.time
+  <span class="kw">let</span> rear = icu.streams.rear_gear  <span class="cmt">// custom stream</span>
+  
+  chart = {
+    data: [{
+      x: time,
+      y: rear,
+      type: <span class="str">'scatter'</span>,
+      mode: <span class="str">'lines'</span>,
+      line: { color: <span class="str">'#f59e0b'</span>, width: <span class="num">1.5</span> }
+    }],
+    layout: {
+      title: <span class="str">'Marcia posteriore nel tempo'</span>,
+      xaxis: { title: <span class="str">'Tempo (s)'</span> },
+      yaxis: { title: <span class="str">'Dente pignone'</span>, dtick: <span class="num">1</span> }
+    }
+  }
+}</code></pre>
+
+      <div class="example-tag">Progressione potenza/passo per ripetuta (test progressivo)</div>
+      <pre><code>{
+  <span class="kw">let</span> ivs = (activity.icu_intervals||[]).filter(<span class="var">iv</span>=>iv.type===<span class="str">'WORK'</span>)
+  <span class="kw">let</span> x = ivs.map((_,i)=>i+<span class="num">1</span>)
+  <span class="kw">let</span> w = ivs.map(<span class="var">iv</span>=>iv.average_watts)
+  <span class="kw">let</span> h = ivs.map(<span class="var">iv</span>=>iv.average_heartrate)
+
+  chart = {
+    data: [
+      { x, y: w, name: <span class="str">'Potenza (W)'</span>, type: <span class="str">'scatter'</span>, mode:<span class="str">'lines+markers'</span>,
+        marker: {color:<span class="str">'#6366f1'</span>}, yaxis: <span class="str">'y1'</span> },
+      { x, y: h, name: <span class="str">'FC (bpm)'</span>, type: <span class="str">'scatter'</span>, mode:<span class="str">'lines+markers'</span>,
+        marker: {color:<span class="str">'#e94560'</span>}, yaxis: <span class="str">'y2'</span> }
+    ],
+    layout: {
+      title: <span class="str">'Andamento potenza e FC per ripetuta'</span>,
+      yaxis:  { title: <span class="str">'Potenza (W)'</span>, side: <span class="str">'left'</span> },
+      yaxis2: { title: <span class="str">'FC (bpm)'</span>, side: <span class="str">'right'</span>, overlaying: <span class="str">'y'</span> }
+    }
+  }
+}</code></pre>
+    </section>
+
+    <div class="footer">
+      <strong>Fonti ufficiali e risorse:</strong><br>
+      &bull; <a href="https://forum.intervals.icu/t/extending-intervals-icu/46565">Guide: Extending Intervals.icu (post indice ufficiale)</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/computed-activity-fields/25673">Computed activity fields (announcement + esempi)</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/custom-interval-fields/25942">Custom interval fields</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/custom-activity-charts/28627">Custom activity charts (Plotly)</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/custom-activity-streams-with-javascript/46416">Custom activity streams with Javascript</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/custom-activity-streams-from-fit-file-messages/46334">Custom activity streams from fit file messages</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/computed-fields-from-fit-file-messages/46055">Computed fields from fit file messages</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/custom-wellness-fields/23188">Custom wellness fields</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/code-completion-for-javascript-in-intervals-icu/98300">Code completion in VS Code/IntelliJ</a><br>
+      &bull; <a href="https://www.npmjs.com/package/@intervals-icu/js-data-model">npm: @intervals-icu/js-data-model (TypeScript data model)</a><br>
+      &bull; <a href="https://plotly.com/javascript/">Documentazione Plotly.js (per custom charts)</a>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intervals.icu API — Riferimento Completo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f7fa; color: #1a1a2e; }
+  .site-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; padding: 40px 60px 32px;
+  }
+  .site-header h1 { font-size: 2.2rem; font-weight: 700; }
+  .site-header h1 span { color: #e94560; }
+  .site-header p { margin-top: 8px; opacity: 0.75; }
+  .badge-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px; padding: 4px 14px; font-size: 0.78rem; font-weight: 600; }
+  .badge.green { background: rgba(16,185,129,0.2); border-color: #10b981; color: #6ee7b7; }
+  .badge.blue  { background: rgba(59,130,246,0.2); border-color: #3b82f6; color: #93c5fd; }
+  .badge.amber { background: rgba(245,158,11,0.2); border-color: #f59e0b; color: #fcd34d; }
+  .main-wrap { display: flex; max-width: 1400px; margin: 0 auto; }
+  .sidebar { width: 260px; min-width: 260px; background: #fff;
+    border-right: 1px solid #e2e8f0; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; padding: 24px 0; }
+  .sidebar h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+    color: #94a3b8; padding: 8px 20px; margin-top: 16px; }
+  .sidebar a { display: block; padding: 7px 20px; color: #475569; text-decoration: none;
+    font-size: 0.85rem; border-left: 3px solid transparent; }
+  .sidebar a:hover { background: #f1f5f9; color: #1a1a2e; border-left-color: #e94560; }
+  .content { flex: 1; padding: 48px 60px; }
+  section { margin-bottom: 56px; }
+  section h2 { font-size: 1.5rem; color: #1a1a2e; border-bottom: 2px solid #e94560;
+    padding-bottom: 10px; margin-bottom: 24px; }
+  section > p { color: #64748b; margin-bottom: 20px; line-height: 1.7; }
+  .intro-box { background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+    border: 1px solid #bfdbfe; border-radius: 12px; padding: 24px;
+    margin-bottom: 32px; line-height: 1.7; color: #374151; }
+  .intro-box strong { color: #1d4ed8; }
+  .endpoint-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+    margin-bottom: 18px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .endpoint-header { display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px; flex-wrap: wrap; }
+  .method { font-weight: 700; font-size: 0.78rem; padding: 4px 12px;
+    border-radius: 6px; letter-spacing: 0.5px; min-width: 56px; text-align: center; }
+  .GET    { background: #dbeafe; color: #1d4ed8; }
+  .POST   { background: #d1fae5; color: #065f46; }
+  .PUT    { background: #fef3c7; color: #92400e; }
+  .DELETE { background: #fee2e2; color: #991b1b; }
+  .endpoint-path { font-family: 'Courier New', monospace; font-size: 0.9rem; color: #1e293b; flex: 1; }
+  .endpoint-desc { color: #64748b; font-size: 0.84rem; flex-basis: 100%; padding-top: 4px; }
+  .endpoint-body { border-top: 1px solid #f1f5f9; padding: 16px 20px; background: #fafafa; }
+  .endpoint-body p { color: #475569; font-size: 0.88rem; line-height: 1.7; margin-bottom: 10px; }
+  .params-title { font-weight: 600; font-size: 0.82rem; color: #1e293b;
+    margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .param-row { display: grid; grid-template-columns: 180px 90px 1fr;
+    gap: 8px; padding: 6px 0; border-top: 1px solid #e2e8f0; font-size: 0.83rem; align-items: start; }
+  .param-name { font-family: monospace; color: #7c3aed; font-weight: 600; }
+  .param-type { color: #0891b2; font-size: 0.78rem; padding-top: 2px; }
+  .param-info { color: #475569; }
+  pre { background: #0f172a; color: #e2e8f0; border-radius: 8px;
+    padding: 16px; font-size: 0.82rem; overflow-x: auto; line-height: 1.6; margin: 10px 0; }
+  code { font-family: 'Courier New', monospace; }
+  .kw { color: #93c5fd; }
+  .str { color: #6ee7b7; }
+  .cmt { color: #64748b; font-style: italic; }
+  .url { color: #fcd34d; }
+  .auth-box { background: #fff7ed; border: 1px solid #fdba74; border-radius: 10px;
+    padding: 18px 20px; margin: 16px 0; font-size: 0.88rem; color: #431407; line-height: 1.7; }
+  .note-box { background: #f0fdf4; border-left: 4px solid #22c55e;
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 12px 0;
+    font-size: 0.87rem; color: #14532d; line-height: 1.65; }
+  .warn-box { background: #fffbeb; border-left: 4px solid #f59e0b;
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 12px 0;
+    font-size: 0.87rem; color: #78350f; line-height: 1.65; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; margin: 12px 0; }
+  th { background: #1a1a2e; color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; color: #374151; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td code { background: #eff6ff; padding: 2px 6px; border-radius: 4px;
+    font-family: monospace; color: #1d4ed8; font-size: 0.82rem; }
+  .scope { background: #e0e7ff; color: #3730a3; border-radius: 5px;
+    padding: 2px 8px; font-size: 0.75rem; font-weight: 600; display: inline-block; margin-left: 6px; }
+  .toc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+  .toc-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 14px 18px; text-decoration: none; color: #1e293b;
+    font-size: 0.88rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .toc-card:hover { border-color: #e94560; }
+  .toc-icon { font-size: 1.3rem; }
+  .footer-links { background: #1a1a2e; color: #94a3b8; border-radius: 12px;
+    padding: 20px 28px; margin-top: 24px; font-size: 0.84rem; line-height: 1.7; }
+  .footer-links a { color: #93c5fd; }
+  h3.sub { margin: 20px 0 12px; color: #1e293b; }
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <h1>Intervals<span>.icu</span> API — Riferimento Completo</h1>
+  <p>Documentazione dettagliata di tutti gli endpoint dell'API REST v1</p>
+  <div class="badge-row">
+    <span class="badge green">Base URL: https://intervals.icu/api/v1</span>
+    <span class="badge blue">Auth: Basic (API Key) o Bearer (OAuth)</span>
+    <span class="badge amber">OpenAPI 3.0</span>
+  </div>
+</div>
+
+<div class="main-wrap">
+  <nav class="sidebar">
+    <h3>Guida</h3>
+    <a href="#overview">Panoramica</a>
+    <a href="#autenticazione">Autenticazione</a>
+    <a href="#oauth">OAuth 2.0</a>
+    <h3>Athlete</h3>
+    <a href="#athlete">Profilo atleta</a>
+    <h3>Activities</h3>
+    <a href="#activities">Attività</a>
+    <a href="#activity-files">File attività</a>
+    <a href="#intervals">Intervalli</a>
+    <a href="#streams">Streams</a>
+    <h3>Calendar / Events</h3>
+    <a href="#events">Events (Calendario)</a>
+    <a href="#calendars">Calendars</a>
+    <h3>Workouts</h3>
+    <a href="#workouts">Libreria workout</a>
+    <a href="#folders">Cartelle</a>
+    <h3>Wellness</h3>
+    <a href="#wellness">Wellness</a>
+    <h3>Training Plans</h3>
+    <a href="#plans">Piani allenamento</a>
+    <h3>Altro</h3>
+    <a href="#webhooks">Webhooks</a>
+    <a href="#estensioni">Estensioni JS</a>
+    <a href="#esempi">Esempi pratici</a>
+  </nav>
+
+  <main class="content">
+
+    <!-- OVERVIEW -->
+    <section id="overview">
+      <h2>Panoramica</h2>
+      <div class="intro-box">
+        <strong>Intervals.icu</strong> e una piattaforma di analisi e pianificazione dell'allenamento per ciclisti, corridori e triatleti. Offre un'<strong>API REST pubblica</strong> che consente di leggere e scrivere dati su attivita, wellness, eventi del calendario, workout e molto altro.<br><br>
+        L'<strong>openapi-spec.json</strong> e la specifica OpenAPI ufficiale generata direttamente dal backend. Descrive tutti gli endpoint organizzati in gruppi funzionali. Questa guida riporta tutti i comandi con descrizione di parametri, payload e risposta attesa.
+      </div>
+      <div class="toc-grid">
+        <a class="toc-card" href="#athlete"><span class="toc-icon">&#127939;</span>Athlete Profile</a>
+        <a class="toc-card" href="#activities"><span class="toc-icon">&#128202;</span>Activities</a>
+        <a class="toc-card" href="#events"><span class="toc-icon">&#128197;</span>Events/Calendar</a>
+        <a class="toc-card" href="#workouts"><span class="toc-icon">&#128170;</span>Workouts</a>
+        <a class="toc-card" href="#wellness"><span class="toc-icon">&#10084;&#65039;</span>Wellness</a>
+        <a class="toc-card" href="#webhooks"><span class="toc-icon">&#128276;</span>Webhooks</a>
+      </div>
+      <div class="note-box">
+        <strong>Nota ID atleta:</strong> Puoi usare <code>0</code> come athlete id in tutti gli endpoint — verra automaticamente sostituito con l'ID dell'atleta associato alla tua API key o bearer token.
+      </div>
+    </section>
+
+    <!-- AUTENTICAZIONE -->
+    <section id="autenticazione">
+      <h2>Autenticazione</h2>
+      <p>L'API supporta due metodi: <strong>Basic Auth</strong> per uso personale e <strong>OAuth 2.0</strong> per applicazioni multi-utente.</p>
+      <div class="auth-box">
+        <strong>Basic Auth (uso personale):</strong> username = <code>API_KEY</code>, password = la tua chiave API.<br>
+        Genera la tua chiave in <code>/settings</code> &rarr; "Developer Settings" &rarr; "API Key".<br><br>
+        <code>curl -u API_KEY:&lt;la-tua-chiave&gt; https://intervals.icu/api/v1/athlete/0/activities</code>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/whoami</span>
+          <span class="endpoint-desc">Restituisce i dati dell'atleta autenticato. Utile per verificare la chiave API.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- OAUTH -->
+    <section id="oauth">
+      <h2>OAuth 2.0</h2>
+      <p>Per applicazioni destinate a piu utenti e obbligatorio usare OAuth 2.0 con bearer token.</p>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/oauth/authorize</span>
+          <span class="endpoint-desc">Reindirizza l'utente alla pagina di autorizzazione OAuth di Intervals.icu.</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Query Parameters</div>
+          <div class="param-row"><span class="param-name">client_id</span><span class="param-type">string*</span><span class="param-info">Il tuo client ID OAuth</span></div>
+          <div class="param-row"><span class="param-name">redirect_uri</span><span class="param-type">string*</span><span class="param-info">URI di callback dopo autorizzazione</span></div>
+          <div class="param-row"><span class="param-name">scope</span><span class="param-type">string*</span><span class="param-info">Es: ACTIVITY:READ WELLNESS:WRITE (separati da spazio)</span></div>
+          <div class="param-row"><span class="param-name">response_type</span><span class="param-type">string*</span><span class="param-info">Deve essere <code>code</code></span></div>
+          <div class="param-row"><span class="param-name">state</span><span class="param-type">string</span><span class="param-info">Valore opaque per protezione CSRF</span></div>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/oauth/token</span>
+          <span class="endpoint-desc">Scambia il codice autorizzazione con access_token e refresh_token.</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Body: <code>grant_type=authorization_code&amp;code=...&amp;redirect_uri=...&amp;client_id=...&amp;client_secret=...</code></p>
+        </div>
+      </div>
+      <table>
+        <tr><th>Scope</th><th>Descrizione</th></tr>
+        <tr><td><code>ACTIVITY:READ</code></td><td>Lettura attivita completate</td></tr>
+        <tr><td><code>ACTIVITY:WRITE</code></td><td>Caricamento e modifica attivita</td></tr>
+        <tr><td><code>WELLNESS:READ</code></td><td>Lettura dati wellness</td></tr>
+        <tr><td><code>WELLNESS:WRITE</code></td><td>Scrittura dati wellness</td></tr>
+        <tr><td><code>PROFILE:READ</code></td><td>Lettura profilo atleta</td></tr>
+      </table>
+    </section>
+
+    <!-- ATHLETE -->
+    <section id="athlete">
+      <h2>Athlete — Profilo atleta</h2>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}</span>
+          <span class="endpoint-desc">Profilo completo dell'atleta: peso, FTP, LTHR, zone, sport, unita di misura.</span>
+          <span class="scope">PROFILE:READ</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Path Parameters</div>
+          <div class="param-row"><span class="param-name">id</span><span class="param-type">string*</span><span class="param-info">ID atleta (usa <code>0</code> per l'atleta corrente)</span></div>
+          <p>Campi risposta: <code>id, username, firstname, lastname, weight, ftp, lthr, threshold_pace, athlete_type, sex, country, timezone, icu_power_zones, icu_hr_zones, icu_pace_zones</code></p>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}</span>
+          <span class="endpoint-desc">Aggiorna il profilo atleta. Invia solo i campi che vuoi modificare.</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code>{ <span class="str">"weight"</span>: 70.5, <span class="str">"ftp"</span>: 280, <span class="str">"lthr"</span>: 168 }</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/settings</span>
+          <span class="endpoint-desc">Impostazioni per sport, zone di potenza/HR/passo, VO2max stimato.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete-summary</span>
+          <span class="endpoint-desc">Lista riepilogativa di tutti gli atleti allenati (utile per coach).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/fitness</span>
+          <span class="endpoint-desc">Dati fitness: CTL (forma cronica), ATL (fatica acuta), TSB (forma attuale).</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Query Parameters</div>
+          <div class="param-row"><span class="param-name">oldest</span><span class="param-type">date*</span><span class="param-info">Data iniziale yyyy-MM-dd</span></div>
+          <div class="param-row"><span class="param-name">newest</span><span class="param-type">date*</span><span class="param-info">Data finale yyyy-MM-dd</span></div>
+          <div class="param-row"><span class="param-name">etype</span><span class="param-type">string</span><span class="param-info">Filtra per tipo sport (es. Ride, Run)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTIVITIES -->
+    <section id="activities">
+      <h2>Activities — Attivita completate</h2>
+      <p>Endpoint per caricare, leggere, modificare e cancellare attivita registrate.</p>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/activities</span>
+          <span class="endpoint-desc">Lista le attivita in un intervallo di date. Aggiungere <code>.csv</code> per formato CSV.</span>
+          <span class="scope">ACTIVITY:READ</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Query Parameters</div>
+          <div class="param-row"><span class="param-name">oldest</span><span class="param-type">date</span><span class="param-info">Data minima yyyy-MM-dd</span></div>
+          <div class="param-row"><span class="param-name">newest</span><span class="param-type">date</span><span class="param-info">Data massima yyyy-MM-dd</span></div>
+          <p>Campi risposta: <code>id, start_date_local, type, name, distance, moving_time, average_heartrate, average_watts, icu_training_load, icu_intensity, icu_ctl, icu_atl, icu_tsb, calories, file_type</code></p>
+          <pre><code><span class="kw">curl</span> -u API_KEY:&lt;k&gt; '<span class="url">https://intervals.icu/api/v1/athlete/0/activities?oldest=2025-01-01&newest=2025-01-31</span>'</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/activities</span>
+          <span class="endpoint-desc">Carica una nuova attivita. Accetta .fit, .tcx, .gpx, .zip, .gz. Body: multipart/form-data.</span>
+          <span class="scope">ACTIVITY:WRITE</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Form field</div>
+          <div class="param-row"><span class="param-name">file</span><span class="param-type">file*</span><span class="param-info">File attivita</span></div>
+          <div class="params-title">Query Parameters opzionali</div>
+          <div class="param-row"><span class="param-name">name</span><span class="param-type">string</span><span class="param-info">Nome attivita</span></div>
+          <div class="param-row"><span class="param-name">description</span><span class="param-type">string</span><span class="param-info">Descrizione</span></div>
+          <div class="param-row"><span class="param-name">external_id</span><span class="param-type">string</span><span class="param-info">ID nella tua app (per linking)</span></div>
+          <pre><code><span class="kw">curl</span> -F <span class="str">file=@giro.fit</span> '<span class="url">https://intervals.icu/api/v1/athlete/0/activities?name=Giro+mattina</span>' -u API_KEY:&lt;k&gt;</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}</span>
+          <span class="endpoint-desc">Dettagli completi di una singola attivita.</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Query Parameters</div>
+          <div class="param-row"><span class="param-name">intervals</span><span class="param-type">boolean</span><span class="param-info">Includi dati intervalli (default: false)</span></div>
+          <p>Con <code>intervals=true</code>: <code>icu_intervals[].start_index, end_index, type, average_watts, weighted_average_watts, intensity, zone, training_load, average_heartrate, decoupling, group_id</code></p>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/activity/{id}</span>
+          <span class="endpoint-desc">Aggiorna un'attivita. Invia solo i campi da modificare. Per svuotare un campo numerico usa -1.</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code>{ <span class="str">"name"</span>: <span class="str">"Giro collinare"</span>, <span class="str">"type"</span>: <span class="str">"Ride"</span> }</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/activity/{id}</span>
+          <span class="endpoint-desc">Elimina permanentemente un'attivita e tutti i suoi dati.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/power-curve</span>
+          <span class="endpoint-desc">Curva di potenza (MMP) dell'attivita su varie durate (1s, 5s, 30s, 1m, 5m, 20m, 60m, ecc.).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/hr-zones</span>
+          <span class="endpoint-desc">Tempo trascorso in ciascuna zona di frequenza cardiaca.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/power-zones</span>
+          <span class="endpoint-desc">Tempo trascorso in ciascuna zona di potenza (Coggan).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/segments</span>
+          <span class="endpoint-desc">Segmenti Strava associati con tempi e classifiche.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/refresh</span>
+          <span class="endpoint-desc">Forza il ricalcolo analisi (intervalli, zone, carico) per l'attivita specificata.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTIVITY FILES -->
+    <section id="activity-files">
+      <h2>File delle attivita</h2>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/file</span>
+          <span class="endpoint-desc">Scarica il file originale (fit/gpx/tcx) compresso gzip.</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code><span class="kw">curl</span> '<span class="url">https://intervals.icu/api/v1/activity/i55751783/file</span>' -H <span class="str">'Authorization: Bearer &lt;tok&gt;'</span> &gt; act.fit.gz</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/fit-file</span>
+          <span class="endpoint-desc">File FIT generato da Intervals.icu con lap corrispondenti agli intervalli e modifiche applicate. Sempre formato .fit anche se l'originale era gpx/tcx.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/strava</span>
+          <span class="endpoint-desc">Info sull'attivita Strava collegata (se presente).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERVALS -->
+    <section id="intervals">
+      <h2>Intervals — Analisi degli intervalli</h2>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/intervals</span>
+          <span class="endpoint-desc">Tutti gli intervalli rilevati o creati manualmente nell'attivita.</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Campi: <code>id, type (WORK/REST/PAUSE/WARMUP/COOLDOWN), start_index, end_index, start_time, end_time, distance, moving_time, average_watts, min/max_watts, weighted_average_watts, intensity, zone, training_load, joules, average_heartrate, average_cadence, decoupling, total_elevation_gain, group_id, estimated_cp</code></p>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/intervals</span>
+          <span class="endpoint-desc">Aggiorna gli intervalli (aggiungi, modifica, elimina intervalli manuali).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/intervals</span>
+          <span class="endpoint-desc">Intervalli aggregati su piu attivita in un periodo. Utile per analisi della progressione.</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Query Parameters</div>
+          <div class="param-row"><span class="param-name">oldest</span><span class="param-type">date*</span><span class="param-info">Data iniziale</span></div>
+          <div class="param-row"><span class="param-name">newest</span><span class="param-type">date*</span><span class="param-info">Data finale</span></div>
+          <div class="param-row"><span class="param-name">type</span><span class="param-type">string</span><span class="param-info">Tipo attivita (Ride, Run, ecc.)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STREAMS -->
+    <section id="streams">
+      <h2>Streams — Dati raw dell'attivita</h2>
+      <p>Gli streams sono le serie temporali dei sensori registrati durante l'attivita.</p>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/activity/{id}/streams</span>
+          <span class="endpoint-desc">Dati grezzi registrati nell'attivita come array di valori al secondo.</span>
+        </div>
+        <div class="endpoint-body">
+          <table>
+            <tr><th>Stream</th><th>Descrizione</th><th>Unita</th></tr>
+            <tr><td><code>time</code></td><td>Secondi dall'inizio</td><td>s</td></tr>
+            <tr><td><code>distance</code></td><td>Distanza progressiva</td><td>m</td></tr>
+            <tr><td><code>altitude</code></td><td>Altitudine</td><td>m</td></tr>
+            <tr><td><code>latlng</code></td><td>Coordinate GPS [lat, lon]</td><td>gradi</td></tr>
+            <tr><td><code>velocity_smooth</code></td><td>Velocita</td><td>m/s</td></tr>
+            <tr><td><code>heartrate</code></td><td>Frequenza cardiaca</td><td>bpm</td></tr>
+            <tr><td><code>cadence</code></td><td>Cadenza pedalata/passo</td><td>rpm/spm</td></tr>
+            <tr><td><code>watts</code></td><td>Potenza</td><td>W</td></tr>
+            <tr><td><code>temp</code></td><td>Temperatura</td><td>gradi C</td></tr>
+            <tr><td><code>grade_smooth</code></td><td>Pendenza</td><td>%</td></tr>
+            <tr><td><code>moving</code></td><td>In movimento (true/false)</td><td>—</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-streams</span>
+          <span class="endpoint-desc">Lista gli stream personalizzati definiti dall'atleta via JavaScript.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-streams</span>
+          <span class="endpoint-desc">Crea un nuovo stream personalizzato (JS o estratto da campi FIT non standard).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-streams/{streamId}</span>
+          <span class="endpoint-desc">Modifica uno stream personalizzato esistente.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-streams/{streamId}</span>
+          <span class="endpoint-desc">Elimina uno stream personalizzato.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVENTS -->
+    <section id="events">
+      <h2>Events — Calendario allenamenti</h2>
+      <p>Gli "events" sono gli elementi del calendario: workout pianificati, gare, note, riposo.</p>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/events</span>
+          <span class="endpoint-desc">Lista tutti gli eventi del calendario in un intervallo di date. Aggiungere <code>.ics</code> per formato iCalendar.</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Query Parameters</div>
+          <div class="param-row"><span class="param-name">oldest</span><span class="param-type">date*</span><span class="param-info">Data iniziale yyyy-MM-dd</span></div>
+          <div class="param-row"><span class="param-name">newest</span><span class="param-type">date*</span><span class="param-info">Data finale yyyy-MM-dd</span></div>
+          <div class="param-row"><span class="param-name">calendar_id</span><span class="param-type">string</span><span class="param-info">Filtra per calendario specifico</span></div>
+          <div class="param-row"><span class="param-name">resolve</span><span class="param-type">boolean</span><span class="param-info">Risolve potenza/HR/passo in valori reali (W, bpm, m/s)</span></div>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/events/{eventId}</span>
+          <span class="endpoint-desc">Dettagli di un singolo evento del calendario.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/events</span>
+          <span class="endpoint-desc">Crea un nuovo evento nel calendario (workout, gara, nota, ecc.).</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code>{
+  <span class="str">"start_date_local"</span>: <span class="str">"2025-03-01T00:00:00"</span>,
+  <span class="str">"category"</span>: <span class="str">"WORKOUT"</span>,
+  <span class="str">"type"</span>: <span class="str">"Ride"</span>,
+  <span class="str">"name"</span>: <span class="str">"Sweet spot intervals"</span>,
+  <span class="str">"description"</span>: <span class="str">"- W/U 15m\n- 3x12m 88-93%\n- C/D 10m"</span>,
+  <span class="str">"moving_time"</span>: 4800,
+  <span class="str">"icu_training_load"</span>: 95
+}</code></pre>
+          <table>
+            <tr><th>Categoria</th><th>Descrizione</th></tr>
+            <tr><td><code>WORKOUT</code></td><td>Allenamento pianificato</td></tr>
+            <tr><td><code>RACE</code></td><td>Gara</td></tr>
+            <tr><td><code>NOTE</code></td><td>Nota o promemoria</td></tr>
+            <tr><td><code>HOLIDAY</code></td><td>Riposo / giorno libero</td></tr>
+            <tr><td><code>TARGET</code></td><td>Obiettivo fitness</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/events/{eventId}</span>
+          <span class="endpoint-desc">Aggiorna un evento esistente. Invia solo i campi da modificare.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/events/{eventId}</span>
+          <span class="endpoint-desc">Elimina un evento dal calendario.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/events/{eventId}/download{ext}</span>
+          <span class="endpoint-desc">Scarica un workout pianificato. Estensioni: <code>.zwo</code> (Zwift), <code>.mrc</code> (TrainerRoad), <code>.erg</code></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALENDARS -->
+    <section id="calendars">
+      <h2>Calendars</h2>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/calendars</span>
+          <span class="endpoint-desc">Lista tutti i calendari dell'atleta (personale, condivisi, sincronizzati).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/calendars</span>
+          <span class="endpoint-desc">Crea un nuovo calendario.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/calendars/{calendarId}</span>
+          <span class="endpoint-desc">Modifica un calendario (nome, colore, abilita/disabilita).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/calendars/{calendarId}</span>
+          <span class="endpoint-desc">Elimina un calendario e tutti i suoi eventi.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKOUTS -->
+    <section id="workouts">
+      <h2>Workouts — Libreria allenamenti</h2>
+      <p>Allenamenti strutturati salvati in libreria, separati dal calendario.</p>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/workouts</span>
+          <span class="endpoint-desc">Lista tutti i workout della libreria (esclusi quelli condivisi da altri).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/workouts/{workoutId}</span>
+          <span class="endpoint-desc">Dettagli di un workout, incluso il campo <code>workout_doc</code> con i passi strutturati.</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code>{
+  <span class="str">"steps"</span>: [
+    { <span class="str">"power"</span>: {<span class="str">"units"</span>: <span class="str">"%ftp"</span>, <span class="str">"value"</span>: 60}, <span class="str">"duration"</span>: 1200 },
+    { <span class="str">"power"</span>: {<span class="str">"units"</span>: <span class="str">"%ftp"</span>, <span class="str">"value"</span>: 110}, <span class="str">"duration"</span>: 480,
+      <span class="str">"repeat"</span>: 4, <span class="str">"rest_duration"</span>: 480 }
+  ],
+  <span class="str">"duration"</span>: 5640,
+  <span class="str">"zoneTimes"</span>: [1920, 1800, 0, 0, 1920, 0, 0]
+}</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/workouts</span>
+          <span class="endpoint-desc">Crea un nuovo workout. Puoi usare descrizione testuale, oppure inviare file .zwo/.mrc/.erg via <code>file_contents</code>.</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code>{
+  <span class="str">"name"</span>: <span class="str">"4x8 VO2max"</span>,
+  <span class="str">"type"</span>: <span class="str">"Ride"</span>,
+  <span class="str">"description"</span>: <span class="str">"- 20m 60%\n4x\n- 8m 110%\n- 8m 50%\n- 10m 60%"</span>
+}</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/workouts/{workoutId}</span>
+          <span class="endpoint-desc">Modifica un workout esistente.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/workouts/{workoutId}</span>
+          <span class="endpoint-desc">Elimina un workout dalla libreria.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/download-workout{ext}</span>
+          <span class="endpoint-desc">Converte un workout JSON nel formato richiesto (.zwo, .mrc, .erg).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOLDERS -->
+    <section id="folders">
+      <h2>Folders — Cartelle workout</h2>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/folders</span>
+          <span class="endpoint-desc">Lista tutte le cartelle e i workout in esse (struttura ad albero).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/folders</span>
+          <span class="endpoint-desc">Crea una nuova cartella.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/folders/{folderId}</span>
+          <span class="endpoint-desc">Rinomina o modifica una cartella.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/folders/{folderId}</span>
+          <span class="endpoint-desc">Elimina una cartella e tutti i workout in essa.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/folders/{folderId}/shared-with</span>
+          <span class="endpoint-desc">Mostra con chi e condivisa la cartella.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/folders/{folderId}/shared-with</span>
+          <span class="endpoint-desc">Aggiorna le condivisioni della cartella.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- WELLNESS -->
+    <section id="wellness">
+      <h2>Wellness — Salute e recupero</h2>
+      <p>Dati giornalieri: peso, HRV, FC a riposo, sonno, passi, SpO2 e campi personalizzati.</p>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/wellness</span>
+          <span class="endpoint-desc">Dati wellness per un intervallo di date. Aggiungere <code>.csv</code> per CSV.</span>
+          <span class="scope">WELLNESS:READ</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="params-title">Query Parameters</div>
+          <div class="param-row"><span class="param-name">oldest</span><span class="param-type">date*</span><span class="param-info">yyyy-MM-dd</span></div>
+          <div class="param-row"><span class="param-name">newest</span><span class="param-type">date*</span><span class="param-info">yyyy-MM-dd</span></div>
+          <table>
+            <tr><th>Campo</th><th>Tipo</th><th>Descrizione</th><th>Unita</th></tr>
+            <tr><td><code>id</code></td><td>string</td><td>Data locale</td><td>yyyy-MM-dd</td></tr>
+            <tr><td><code>weight</code></td><td>number</td><td>Peso corporeo</td><td>kg</td></tr>
+            <tr><td><code>restingHR</code></td><td>integer</td><td>FC a riposo mattutina</td><td>bpm</td></tr>
+            <tr><td><code>hrv</code></td><td>number</td><td>HRV variabilita cardiaca</td><td>ms</td></tr>
+            <tr><td><code>hrv4t</code></td><td>number</td><td>HRV4Training score</td><td>—</td></tr>
+            <tr><td><code>sleepSecs</code></td><td>integer</td><td>Durata sonno</td><td>s</td></tr>
+            <tr><td><code>sleepScore</code></td><td>number</td><td>Qualita sonno</td><td>0-100</td></tr>
+            <tr><td><code>avgSleepHR</code></td><td>number</td><td>FC media durante sonno</td><td>bpm</td></tr>
+            <tr><td><code>steps</code></td><td>integer</td><td>Passi giornalieri</td><td>—</td></tr>
+            <tr><td><code>spO2</code></td><td>number</td><td>Saturazione ossigeno</td><td>%</td></tr>
+            <tr><td><code>kcalConsumed</code></td><td>number</td><td>Calorie consumate</td><td>kcal</td></tr>
+            <tr><td><code>readiness</code></td><td>number</td><td>Readiness (Oura, Garmin, ecc.)</td><td>0-100</td></tr>
+            <tr><td><code>locked</code></td><td>boolean</td><td>Blocca override da sync automatico</td><td>—</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/wellness/{date}</span>
+          <span class="endpoint-desc">Dati wellness per un singolo giorno (es. <code>2025-02-17</code>).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/wellness/{date}</span>
+          <span class="endpoint-desc">Aggiorna il record wellness di una data specifica. Invia solo i campi da modificare.</span>
+          <span class="scope">WELLNESS:WRITE</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code><span class="kw">curl</span> -X PUT '<span class="url">https://intervals.icu/api/v1/athlete/0/wellness/2025-02-17</span>' \
+  -u API_KEY:&lt;k&gt; -H <span class="str">'Content-Type: application/json'</span> \
+  -d '<span class="str">{"weight": 70.2, "hrv": 45.3, "locked": true}</span>'</code></pre>
+          <div class="warn-box">Se usi Oura o Garmin, aggiungi <code>"locked": true</code> per impedire che il sync automatico sovrascriva i valori.</div>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/wellness-bulk</span>
+          <span class="endpoint-desc">Aggiorna wellness di piu giorni in una sola chiamata (array JSON).</span>
+          <span class="scope">WELLNESS:WRITE</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code><span class="kw">curl</span> -X PUT '<span class="url">https://intervals.icu/api/v1/athlete/0/wellness-bulk</span>' \
+  -H <span class="str">'Authorization: Bearer &lt;tok&gt;'</span> -H <span class="str">'Content-Type: application/json'</span> \
+  -d '<span class="str">[{"id":"2025-02-17","weight":70.2},{"id":"2025-02-16","hrv":48}]</span>'</code></pre>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-wellness-fields</span>
+          <span class="endpoint-desc">Lista i campi wellness personalizzati (es. stress, dolori muscolari, alcol, ecc.).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-wellness-fields</span>
+          <span class="endpoint-desc">Crea un nuovo campo wellness personalizzato con nome, icona, tipo e unita.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-wellness-fields/{fieldId}</span>
+          <span class="endpoint-desc">Modifica un campo wellness personalizzato.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-wellness-fields/{fieldId}</span>
+          <span class="endpoint-desc">Elimina un campo wellness personalizzato.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRAINING PLANS -->
+    <section id="plans">
+      <h2>Training Plans — Piani di allenamento</h2>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/training-plans</span>
+          <span class="endpoint-desc">Lista i piani di allenamento disponibili.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/training-plans/{planId}</span>
+          <span class="endpoint-desc">Dettaglio di un piano: settimane, obiettivi, volume previsto.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/training-plans/{planId}/apply</span>
+          <span class="endpoint-desc">Applica il piano al calendario dell'atleta a partire da una data.</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code>{ <span class="str">"start_date"</span>: <span class="str">"2025-03-01"</span>, <span class="str">"race_date"</span>: <span class="str">"2025-06-01"</span> }</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- WEBHOOKS -->
+    <section id="webhooks">
+      <h2>Webhooks</h2>
+      <p>Ricevi notifiche in tempo reale quando avvengono eventi su Intervals.icu.</p>
+      <div class="note-box">
+        <strong>Configurazione:</strong> Vai su /settings &rarr; Manage App. La risposta al webhook deve essere 2xx, altrimenti Intervals riprova con backoff esponenziale. I webhook per attivita Strava NON vengono inviati.
+      </div>
+      <table>
+        <tr><th>Tipo evento</th><th>Descrizione</th><th>Ritardo</th></tr>
+        <tr><td><code>ACTIVITY_UPLOADED</code></td><td>Nuova attivita caricata</td><td>immediato</td></tr>
+        <tr><td><code>ACTIVITY_ANALYZED</code></td><td>Attivita analizzata</td><td>~60s</td></tr>
+        <tr><td><code>ACTIVITY_DELETED</code></td><td>Attivita eliminata</td><td>immediato</td></tr>
+        <tr><td><code>CALENDAR_UPDATED</code></td><td>Evento calendario modificato/eliminato</td><td>variabile</td></tr>
+        <tr><td><code>WELLNESS_UPDATED</code></td><td>Dati wellness aggiornati</td><td>immediato</td></tr>
+      </table>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">&lt;tuo-url-configurato&gt;</span>
+          <span class="endpoint-desc">Payload inviato da Intervals.icu al tuo endpoint quando avviene un evento.</span>
+        </div>
+        <div class="endpoint-body">
+          <pre><code>{
+  <span class="str">"secret"</span>: <span class="str">"ooKeodacie8I"</span>,  <span class="cmt">// verifica autenticita</span>
+  <span class="str">"events"</span>: [{
+    <span class="str">"athlete_id"</span>: <span class="str">"2049151"</span>,
+    <span class="str">"type"</span>: <span class="str">"ACTIVITY_UPLOADED"</span>,
+    <span class="str">"timestamp"</span>: <span class="str">"2025-02-17T10:40:47.011+00:00"</span>,
+    <span class="str">"activity"</span>: { <span class="cmt">/* dati attivita */</span> }
+  }]
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESTENSIONI JS -->
+    <section id="estensioni">
+      <h2>Estensioni JavaScript</h2>
+      <p>Intervals.icu permette di estendere la piattaforma con codice JavaScript eseguito sul server o nel browser.</p>
+      <table>
+        <tr><th>Tipo</th><th>Posizione</th><th>Funzionalita</th></tr>
+        <tr><td><strong>Custom Wellness Fields</strong></td><td>Wellness dialog &rarr; Fields</td><td>Campi input personalizzati con icona, tipo, CSV</td></tr>
+        <tr><td><strong>Custom Activity Fields</strong></td><td>Activity &rarr; Custom</td><td>Campi calcolati con JS o letti da FIT</td></tr>
+        <tr><td><strong>Computed Activity Fields</strong></td><td>Activity Fields</td><td>Script JS con accesso a stream, atleta, wellness</td></tr>
+        <tr><td><strong>Custom Interval Fields</strong></td><td>Fields button</td><td>Dati per intervallo (manuali o calcolati)</td></tr>
+        <tr><td><strong>Custom Activity Streams</strong></td><td>Charts &rarr; Custom Streams</td><td>Nuovi stream da FIT o calcolati in JS</td></tr>
+        <tr><td><strong>Custom Activity Charts</strong></td><td>Charts button</td><td>Grafici Plotly.js personalizzati</td></tr>
+        <tr><td><strong>Custom Fitness Charts</strong></td><td>Fitness page</td><td>Grafici storici sulla pagina fitness</td></tr>
+      </table>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method GET">GET</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-activity-fields</span>
+          <span class="endpoint-desc">Lista i campi attivita personalizzati definiti per l'atleta.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method POST">POST</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-activity-fields</span>
+          <span class="endpoint-desc">Crea un nuovo campo attivita personalizzato (con eventuale codice JS).</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method PUT">PUT</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-activity-fields/{fieldId}</span>
+          <span class="endpoint-desc">Aggiorna la definizione o il codice di un campo attivita personalizzato.</span>
+        </div>
+      </div>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="method DELETE">DELETE</span>
+          <span class="endpoint-path">/api/v1/athlete/{id}/custom-activity-fields/{fieldId}</span>
+          <span class="endpoint-desc">Elimina un campo attivita personalizzato.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESEMPI -->
+    <section id="esempi">
+      <h2>Esempi pratici</h2>
+
+      <h3 class="sub">1. Scaricare tutte le attivita di gennaio 2025 in CSV</h3>
+      <pre><code><span class="kw">curl</span> -u API_KEY:&lt;k&gt; \
+  '<span class="url">https://intervals.icu/api/v1/athlete/0/activities.csv?oldest=2025-01-01&newest=2025-01-31</span>' \
+  -o gennaio-2025.csv</code></pre>
+
+      <h3 class="sub">2. Caricare un'attivita FIT</h3>
+      <pre><code><span class="kw">curl</span> -F <span class="str">file=@giro.fit</span> \
+  '<span class="url">https://intervals.icu/api/v1/athlete/0/activities?name=Giro+collinare</span>' \
+  -u API_KEY:&lt;k&gt;</code></pre>
+
+      <h3 class="sub">3. Pianificare un workout domani</h3>
+      <pre><code><span class="kw">curl</span> -X POST '<span class="url">https://intervals.icu/api/v1/athlete/0/events</span>' \
+  -u API_KEY:&lt;k&gt; -H <span class="str">'Content-Type: application/json'</span> \
+  -d '{
+    <span class="str">"start_date_local"</span>: <span class="str">"2025-02-18T00:00:00"</span>,
+    <span class="str">"category"</span>: <span class="str">"WORKOUT"</span>,
+    <span class="str">"type"</span>: <span class="str">"Ride"</span>,
+    <span class="str">"name"</span>: <span class="str">"Endurance Z2"</span>,
+    <span class="str">"description"</span>: <span class="str">"- 2h 65%"</span>,
+    <span class="str">"moving_time"</span>: 7200
+  }'</code></pre>
+
+      <h3 class="sub">4. Aggiornare peso e HRV nel wellness</h3>
+      <pre><code><span class="kw">curl</span> -X PUT '<span class="url">https://intervals.icu/api/v1/athlete/0/wellness/2025-02-17</span>' \
+  -u API_KEY:&lt;k&gt; -H <span class="str">'Content-Type: application/json'</span> \
+  -d '<span class="str">{"weight": 70.1, "hrv": 48.5, "restingHR": 51}</span>'</code></pre>
+
+      <h3 class="sub">5. Leggere intervalli di un'attivita</h3>
+      <pre><code><span class="kw">curl</span> -u API_KEY:&lt;k&gt; '<span class="url">https://intervals.icu/api/v1/activity/i55751783?intervals=true</span>'</code></pre>
+
+      <h3 class="sub">6. Python — Libreria community (py-intervalsicu)</h3>
+      <pre><code><span class="kw">pip install</span> intervalsicu
+
+<span class="kw">from</span> intervalsicu <span class="kw">import</span> Intervals
+<span class="kw">from</span> datetime <span class="kw">import</span> date
+
+svc = Intervals(<span class="str">"ATHLETE_ID"</span>, <span class="str">"API_KEY"</span>)
+
+<span class="cmt"># Lista attivita</span>
+acts = svc.activities(date(2025, 1, 1), date(2025, 1, 31))
+
+<span class="cmt"># Aggiorna wellness</span>
+w = svc.wellness(date(2025, 2, 17))
+w[<span class="str">'weight'</span>] = 70.2
+svc.wellness_put(w)</code></pre>
+
+      <h3 class="sub">7. Aggiornamento bulk wellness (piu giorni)</h3>
+      <pre><code><span class="kw">curl</span> -X PUT '<span class="url">https://intervals.icu/api/v1/athlete/0/wellness-bulk</span>' \
+  -H <span class="str">'Authorization: Bearer &lt;token&gt;'</span> \
+  -H <span class="str">'Content-Type: application/json'</span> \
+  -d '[
+    {<span class="str">"id"</span>:<span class="str">"2025-02-17"</span>,<span class="str">"weight"</span>:70.2,<span class="str">"hrv"</span>:48},
+    {<span class="str">"id"</span>:<span class="str">"2025-02-16"</span>,<span class="str">"weight"</span>:70.5,<span class="str">"restingHR"</span>:52}
+  ]'</code></pre>
+    </section>
+
+    <div class="footer-links">
+      <strong style="color:#e94560;">Fonti ufficiali:</strong><br>
+      &bull; <a href="https://intervals.icu/api-docs.html">API Docs (RapiDoc UI) — documentazione interattiva ufficiale</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/api-access-to-intervals-icu/609">Forum: API access to Intervals.icu</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/intervals-icu-api-integration-cookbook/80090">Forum: Integration Cookbook</a><br>
+      &bull; <a href="https://forum.intervals.icu/t/extending-intervals-icu/46565">Forum: Extending Intervals.icu con JavaScript</a><br>
+      &bull; <a href="https://py-intervalsicu.readthedocs.io/">Python library: py-intervalsicu (community)</a>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>
