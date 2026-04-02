@@ -185,13 +185,13 @@
     if (!durations.length) return null;
 
     const metricRows = [
-      "N esatti",
-      "Tempo esatto",
+      "N tot",
+      "t tot",
       "Avg W",
       "Avg HR",
       "Avg Cad",
       ">= N",
-      ">= Tempo"
+      ">= t"
     ];
 
     const headerValues = [["Metrica"]];
