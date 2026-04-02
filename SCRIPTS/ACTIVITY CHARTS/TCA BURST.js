@@ -2,7 +2,7 @@
   // Duplicate this file and change THRESHOLDS_WATTS if you need other fixed thresholds.
   const MIN_DURATION_SEC = 4;
   const MERGE_GAP_SEC = 1;
-  const THRESHOLDS_WATTS = [300, 350, 400, 450];
+  const THRESHOLDS_WATTS = [450, 400, 350, 300];
 
   const streams = (typeof icu !== "undefined" && icu && icu.streams) ? icu.streams : {};
 
