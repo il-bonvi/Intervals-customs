@@ -330,7 +330,7 @@
         data: data,
         layout: {
           title: {
-            text: "Burst per durata esatta | min 4s | merge 1s | soglie multiple"
+            text: "Broccardo Rules"
           },
           annotations: annotations,
           margin: { l: 10, r: 10, t: 60, b: 60 }
