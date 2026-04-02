@@ -39,10 +39,17 @@
   }
 
   const watts = pickStream(["watts", "power", "watts_calc"]);
-  const hr = pickStream(["heartrate", "heart_rate", "hr"]);
+  
+  let hr = [];
+  try {
+    hr = pickStream(["heartrate", "heart_rate", "hr"]);
+  } catch (e) {
+    hr = [];
+  }
+  
   const cad = pickStream(["cadence", "cad"]);
   const time = pickStream(["time", "seconds", "timer_time", "elapsed_time"]);
-
+  
   const n = watts.length;
   const records = [];
 
