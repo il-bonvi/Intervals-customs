@@ -1,11 +1,15 @@
 (() => {
 
     // === CONFIGURAZIONE INIZIALE ===
+
+    // Filtro intervallo temporale (secondi o 'hh:mm:ss')
+    const FILTER_START_RAW = '0';   // start time (es: '1:07:04', 3600, h ecc)
+    const FILTER_END_RAW = '60000';  // end time (es: '2:01:04', 6400, h ecc)
+
     // Parametri principali
     const MERGE_POWER_DIFF_PERCENT = 15; // % diff. potenza per unire sezioni (es: 15)
     const WINDOW_SECONDS = 60;           // Durata finestra analisi (s)
     const MIN_EFFORT_INTENSITY_FTP = 100; // Soglia minima intensità (% FTP)
-    const FTP = icu.activity.icu_ftp;    // FTP dell'attività
 
     // Limatura
     const TRIM_WINDOW_SECONDS = 10;      // Finestra limatura (s)
@@ -25,8 +29,48 @@
     const ZONE_COLOR_DEFAULT = { color: "#000000ff", label: "Anaerobico" };
 
     // Utility
+    const FTP = icu.activity.icu_ftp;    // FTP dell'attività
     const fmt = (num, digits = 0) => Number(num).toFixed(digits);
     // === FINE CONFIGURAZIONE ===
+
+        // Funzione per convertire 'hh:mm:ss' o secondi in secondi
+    function parseTimeToSeconds(val) {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+            if (/^\d+$/.test(val)) return Number(val);
+            // hh:mm:ss
+            if (/^\d{1,2}:\d{1,2}:\d{1,2}$/.test(val)) {
+                const parts = val.split(':').map(Number);
+                return parts[0] * 3600 + parts[1] * 60 + parts[2];
+            }
+            // mm:ss
+            if (/^\d{1,2}:\d{1,2}$/.test(val)) {
+                const parts = val.split(':').map(Number);
+                return parts[0] * 60 + parts[1];
+            }
+            // 1h07m04s
+            if (/^(\d+h)?(\d+m)?(\d+s)?$/.test(val.replace(/\s+/g, ''))) {
+                let h = 0, m = 0, s = 0;
+                const matchH = val.match(/(\d+)h/);
+                const matchM = val.match(/(\d+)m/);
+                const matchS = val.match(/(\d+)s/);
+                if (matchH) h = Number(matchH[1]);
+                if (matchM) m = Number(matchM[1]);
+                if (matchS) s = Number(matchS[1]);
+                return h * 3600 + m * 60 + s;
+            }
+            // Solo secondi
+            if (/^\d+s$/.test(val)) return Number(val.replace('s',''));
+            // Solo minuti
+            if (/^\d+m$/.test(val)) return Number(val.replace('m','')) * 60;
+            // Solo ore
+            if (/^\d+h$/.test(val)) return Number(val.replace('h','')) * 3600;
+        }
+        return 0;
+    }
+
+    const FILTER_START_SEC = parseTimeToSeconds(FILTER_START_RAW);
+    const FILTER_END_SEC = parseTimeToSeconds(FILTER_END_RAW);
 
     function getStreamData(streamName) {
         const stream = icu.streams.get(streamName);
@@ -41,6 +85,28 @@
     const grade = getStreamData("grade_smooth");
     const time = getStreamData("time");
     const weight = icu.activity.icu_weight;
+
+    // Filtra i dati in base all'intervallo selezionato
+    // Trova gli indici di inizio/fine del filtro
+    let filterStartIdx = time.findIndex(t => t >= FILTER_START_SEC);
+    let filterEndIdx = time.length - 1;
+    for (let i = filterStartIdx; i < time.length; i++) {
+        if (time[i] > FILTER_END_SEC) {
+            filterEndIdx = i - 1;
+            break;
+        }
+    }
+    if (filterStartIdx === -1) filterStartIdx = 0;
+    if (filterEndIdx < filterStartIdx) filterEndIdx = filterStartIdx;
+
+    // Taglia tutti gli array
+    const altitudeF = altitude.slice(filterStartIdx, filterEndIdx + 1);
+    const distanceF = distance.slice(filterStartIdx, filterEndIdx + 1);
+    const distanceKmF = distanceKm.slice(filterStartIdx, filterEndIdx + 1);
+    const powerF = power.slice(filterStartIdx, filterEndIdx + 1);
+    const heartrateF = heartrate.slice(filterStartIdx, filterEndIdx + 1);
+    const gradeF = grade.slice(filterStartIdx, filterEndIdx + 1);
+    const timeF = time.slice(filterStartIdx, filterEndIdx + 1);
 
     function getZoneColor(avgPower, FTP) {
         if (!FTP || FTP <= 0) return 'grey';
@@ -137,22 +203,25 @@
 
 
     // 1. Crea finestre fisse
-    let efforts = mergeConsecutiveWindows(power, WINDOW_SECONDS, MERGE_POWER_DIFF_PERCENT);
+    // Gli effort sono già filtrati sull'intervallo, non serve ulteriore filtro
+    let efforts = mergeConsecutiveWindows(powerF, WINDOW_SECONDS, MERGE_POWER_DIFF_PERCENT);
 
     // 2. Applica limatura PRIMA del merge (con parametri limatura)
     efforts = efforts.map(eff => {
-        const trimmed = trimEffort(power, eff.start, eff.end, eff.avg, TRIM_WINDOW_SECONDS, TRIM_LOW_PERCENT);
-        const trimmedPower = power.slice(trimmed.start, trimmed.end);
+        const trimmed = trimEffort(powerF, eff.start, eff.end, eff.avg, TRIM_WINDOW_SECONDS, TRIM_LOW_PERCENT);
+        const trimmedPower = powerF.slice(trimmed.start, trimmed.end);
         const trimmedAvg = trimmedPower.reduce((a,b)=>a+b,0) / (trimmedPower.length || 1);
         return { ...eff, start: trimmed.start, end: trimmed.end, avg: trimmedAvg };
     });
 
     // 3. Filtra solo effort sopra la soglia percentuale di FTP
     efforts = efforts.filter(eff => eff.avg > (MIN_EFFORT_INTENSITY_FTP / 100) * FTP);
+    // Filtra gli effort che iniziano nell'intervallo selezionato
+    efforts = efforts.filter(eff => timeF[eff.start] >= FILTER_START_SEC && timeF[eff.start] <= FILTER_END_SEC);
 
     // Merge + estensione iterativi finché la lista non cambia più
     // (estensione con parametri estensione)
-    function mergeEffortsPostTrim(efforts, power, mergePercent) {
+    function mergeEffortsPostTrim(efforts, powerF, mergePercent) {
         if (efforts.length === 0) return [];
         // Ordina per inizio
         const sorted = efforts.slice().sort((a, b) => a.start - b.start);
@@ -162,7 +231,7 @@
             const next = sorted[i];
             // Unisci se si sovrappongono anche solo parzialmente (next.start < curr.end)
             if (next.start < curr.end) {
-                const allPower = power.slice(Math.min(curr.start, next.start), Math.max(curr.end, next.end));
+                const allPower = powerF.slice(Math.min(curr.start, next.start), Math.max(curr.end, next.end));
                 const avg = allPower.reduce((a,b)=>a+b,0) / allPower.length;
                 const percDiff = Math.abs(curr.avg - next.avg) / ((curr.avg + next.avg) / 2) * 100;
                 if (percDiff <= mergePercent) {
@@ -184,7 +253,7 @@ while (changed) {
     changed = false;
     const prevEfforts = JSON.stringify(efforts);
     // Merge
-    efforts = mergeEffortsPostTrim(efforts, power, MERGE_POWER_DIFF_PERCENT);
+    efforts = mergeEffortsPostTrim(efforts, powerF, MERGE_POWER_DIFF_PERCENT);
     // Estensione in testa e in coda (con parametri estensione)
     efforts = efforts.map(eff => {
         let { start, end } = eff;
@@ -193,9 +262,9 @@ while (changed) {
         while (extChanged) {
             extChanged = false;
             if (start - EXTEND_WINDOW_SECONDS >= 0) {
-                const extWin = power.slice(start - EXTEND_WINDOW_SECONDS, start);
+                const extWin = powerF.slice(start - EXTEND_WINDOW_SECONDS, start);
                 const extAvg = extWin.reduce((a,b)=>a+b,0) / extWin.length;
-                const currPower = power.slice(start, end);
+                const currPower = powerF.slice(start, end);
                 const currAvg = currPower.reduce((a,b)=>a+b,0) / (currPower.length || 1);
                 if (extAvg >= (EXTEND_LOW_PERCENT / 100) * currAvg) {
                     start -= EXTEND_WINDOW_SECONDS;
@@ -207,10 +276,10 @@ while (changed) {
         extChanged = true;
         while (extChanged) {
             extChanged = false;
-            if (end + EXTEND_WINDOW_SECONDS <= power.length) {
-                const extWin = power.slice(end, end + EXTEND_WINDOW_SECONDS);
+            if (end + EXTEND_WINDOW_SECONDS <= powerF.length) {
+                const extWin = powerF.slice(end, end + EXTEND_WINDOW_SECONDS);
                 const extAvg = extWin.reduce((a,b)=>a+b,0) / extWin.length;
-                const currPower = power.slice(start, end);
+                const currPower = powerF.slice(start, end);
                 const currAvg = currPower.reduce((a,b)=>a+b,0) / (currPower.length || 1);
                 if (extAvg >= (EXTEND_LOW_PERCENT / 100) * currAvg) {
                     end += EXTEND_WINDOW_SECONDS;
@@ -220,10 +289,10 @@ while (changed) {
         }
         // Limatura dopo merge+estensione (con parametri limatura)
         // Calcola la media aggiornata dopo l'estensione
-        const updatedPower = power.slice(start, end);
+        const updatedPower = powerF.slice(start, end);
         const updatedAvg = updatedPower.reduce((a,b)=>a+b,0) / (updatedPower.length || 1);
-        const trimmed = trimEffort(power, start, end, updatedAvg, TRIM_WINDOW_SECONDS, TRIM_LOW_PERCENT);
-        const trimmedPower = power.slice(trimmed.start, trimmed.end);
+        const trimmed = trimEffort(powerF, start, end, updatedAvg, TRIM_WINDOW_SECONDS, TRIM_LOW_PERCENT);
+        const trimmedPower = powerF.slice(trimmed.start, trimmed.end);
         const trimmedAvg = trimmedPower.reduce((a,b)=>a+b,0) / (trimmedPower.length || 1);
         return { ...eff, start: trimmed.start, end: trimmed.end, avg: trimmedAvg };
     });
@@ -233,7 +302,7 @@ while (changed) {
 
 // --- SPLIT: se un effort è completamente contenuto in un altro, splitta il più lungo in 3 parti ---
 
-function splitEffortsOnInclusion(efforts, power) {
+function splitEffortsOnInclusion(efforts, powerF) {
     // Ordina per inizio
     let result = efforts.slice().sort((a, b) => a.start - b.start);
     let changed = true;
@@ -252,7 +321,7 @@ function splitEffortsOnInclusion(efforts, power) {
                     const newEfforts = [];
                     // Prima di b
                     if (b.start > a.start) {
-                        const pow1 = power.slice(a.start, b.start);
+                        const pow1 = powerF.slice(a.start, b.start);
                         if (pow1.length > 0) {
                             newEfforts.push({ start: a.start, end: b.start, avg: pow1.reduce((x,y)=>x+y,0)/pow1.length });
                         }
@@ -261,7 +330,7 @@ function splitEffortsOnInclusion(efforts, power) {
                     newEfforts.push(b);
                     // Dopo b
                     if (b.end < a.end) {
-                        const pow2 = power.slice(b.end, a.end);
+                        const pow2 = powerF.slice(b.end, a.end);
                         if (pow2.length > 0) {
                             newEfforts.push({ start: b.end, end: a.end, avg: pow2.reduce((x,y)=>x+y,0)/pow2.length });
                         }
@@ -280,7 +349,7 @@ function splitEffortsOnInclusion(efforts, power) {
                     newEfforts.push(b);
                     // Dopo b
                     if (b.end < a.end) {
-                        const pow2 = power.slice(b.end, a.end);
+                        const pow2 = powerF.slice(b.end, a.end);
                         if (pow2.length > 0) {
                             newEfforts.push({ start: b.end, end: a.end, avg: pow2.reduce((x,y)=>x+y,0)/pow2.length });
                         }
@@ -295,7 +364,7 @@ function splitEffortsOnInclusion(efforts, power) {
                     const newEfforts = [];
                     // Prima di b
                     if (b.start > a.start) {
-                        const pow1 = power.slice(a.start, b.start);
+                        const pow1 = powerF.slice(a.start, b.start);
                         if (pow1.length > 0) {
                             newEfforts.push({ start: a.start, end: b.start, avg: pow1.reduce((x,y)=>x+y,0)/pow1.length });
                         }
@@ -316,23 +385,23 @@ function splitEffortsOnInclusion(efforts, power) {
         if (result[i].start < result[i-1].end) {
             result[i].start = result[i-1].end;
             // Ricalcola avg se necessario
-            const pow = power.slice(result[i].start, result[i].end);
+            const pow = powerF.slice(result[i].start, result[i].end);
             result[i].avg = pow.length > 0 ? pow.reduce((x,y)=>x+y,0)/pow.length : 0;
         }
     }
     return result;
 }
 
-efforts = splitEffortsOnInclusion(efforts, power);
+efforts = splitEffortsOnInclusion(efforts, powerF);
 
     // (Logica di accorpamento in testa rimossa: lasciamo solo limatura ed estensione in coda)
 
     // --- GRAFICO ---
     const traces = [
         {
-            x: distanceKm,
-            y: altitude,
-            text: altitude.map((alt, i) => `📏 ${fmt(distanceKm[i],2)} km<br>🏔️ ${fmt(alt,1)} m`),
+            x: distanceKmF,
+            y: altitudeF,
+            text: altitudeF.map((alt, i) => `📏 ${fmt(distanceKmF[i],2)} km<br>🏔️ ${fmt(alt,1)} m`),
             hoverinfo: 'text',
             fill: 'tozeroy',
             type: 'scatter',
@@ -348,17 +417,17 @@ efforts = splitEffortsOnInclusion(efforts, power);
     const sortedEfforts = effortsWithIndex.slice().sort((a, b) => b.avg - a.avg);
 // Curve ordinate per potenza (sortedEfforts)
 sortedEfforts.forEach((eff, idx) => {
-    const sectionPower = power.slice(eff.start, eff.end);
-    const sectionAltitude = altitude.slice(eff.start, eff.end);
-    const sectionDistanceKm = distanceKm.slice(eff.start, eff.end);
-    const sectionTime = time.slice(eff.start, eff.end);
+    const sectionPower = powerF.slice(eff.start, eff.end);
+    const sectionAltitude = altitudeF.slice(eff.start, eff.end);
+    const sectionDistanceKm = distanceKmF.slice(eff.start, eff.end);
+    const sectionTime = timeF.slice(eff.start, eff.end);
     const avgPower = eff.avg;
     const bgColor = getZoneColor(avgPower, FTP);
     // Calcolo metriche aggiuntive come nel vecchio script
-    const sectionHR = heartrate.slice(eff.start, eff.end);
-    const sectionGrade = grade.slice(eff.start, eff.end);
+    const sectionHR = heartrateF.slice(eff.start, eff.end);
+    const sectionGrade = gradeF.slice(eff.start, eff.end);
     const elevationGain = sectionAltitude[sectionAltitude.length - 1] - sectionAltitude[0];
-    const dist = distance.slice(eff.start, eff.end);
+    const dist = distanceF.slice(eff.start, eff.end);
     const distTot = dist[dist.length - 1] - dist[0];
     const climbTimeInSeconds = sectionTime[sectionTime.length - 1] - sectionTime[0] + 1;
     const avgSpeed = distTot / (climbTimeInSeconds / 3600) / 1000;
@@ -373,8 +442,9 @@ sortedEfforts.forEach((eff, idx) => {
         avgWattsSecondHalf = sectionPower.slice(half).reduce((a,b)=>a+b,0) / (sectionPower.length - half || 1);
         wattsRatio = avgWattsSecondHalf ? avgWattsFirstHalf / avgWattsSecondHalf : 0;
     }
-    const avgHR = sectionHR.length ? sectionHR.reduce((a,b)=>a+b,0)/sectionHR.length : 0;
-    const maxHR = sectionHR.length ? Math.max(...sectionHR) : 0;
+    const validHR = sectionHR.filter(hr => hr > 0);
+    const avgHR = validHR.length ? validHR.reduce((a,b)=>a+b,0)/validHR.length : 0;
+    const maxHR = validHR.length ? Math.max(...validHR) : 0;
     const maxGrade = sectionGrade.length ? Math.max(...sectionGrade) : 0;
     const startTime = sectionTime.length ? sectionTime[0] : '';
     let best5sWatt = '', best5sWattKg = '';
@@ -385,18 +455,19 @@ sortedEfforts.forEach((eff, idx) => {
         best5sWattKg = fmt(maxW / weight, 2);
         avgPowerPerKg = avgPower / weight;
     }
+    // Calcolo kJ totali accumulati dall'inizio attività (dati globali) fino all'inizio dell'effort
     let joules = 0, joulesOverCP = 0;
-    if (power && time && eff.start !== undefined && eff.start < power.length && FTP) {
-        for (let i = 0; i < eff.start; i++) {
+    if (power && time && eff.start > 0 && FTP) {
+        for (let i = 1; i < filterStartIdx + eff.start; i++) {
             const w = power[i];
-            const secs = time[i] - (i > 0 ? time[i - 1] : 0);
-            if (secs < 30) {
+            const secs = time[i] - time[i - 1];
+            if (secs > 0 && secs < 30) {
                 joules += w * secs;
                 if (w >= FTP) joulesOverCP += w * secs;
             }
         }
     }
-    const hours = (time && eff.start !== undefined && time[eff.start]) ? (time[eff.start] / 3600) : 0;
+    const hours = (time && eff.start !== undefined && time[filterStartIdx + eff.start]) ? (time[filterStartIdx + eff.start] / 3600) : 0;
     const kJ_h_kg = (weight && hours > 0) ? (joules/1000) / hours / weight : 0;
     const kJ_h_kg_overCP = (weight && hours > 0) ? (joulesOverCP/1000) / hours / weight : 0;
     function formatSecondsToHHMMSS(seconds) {
@@ -413,17 +484,18 @@ sortedEfforts.forEach((eff, idx) => {
     }
     const traceText = [
         (() => {
-            const sectionCadence = getStreamData("cadence").slice(eff.start, eff.end);
+            const sectionCadence = getStreamData("cadence").slice(filterStartIdx + eff.start, filterStartIdx + eff.end);
             const avgCadence = sectionCadence.length ? sectionCadence.reduce((a,b)=>a+b,0)/sectionCadence.length : 0;
             return `⚡ ${fmt(avgPower)} W | 5"🔺${best5sWatt} W 🌀 ${fmt(avgCadence)} rpm`;
         })(),
         (() => {
             const timeStr = startTime ? `🕒 ${formatSecondsToHHMMSS(Number(startTime))}` : '';
-            return `⏱️ ${formatMMSS(effortDurationSec)}${timeStr ? ' | ' + timeStr : ''}`;
+            const percFTP = FTP ? ((avgPower / FTP) * 100) : 0;
+            return `⏱️ ${formatMMSS(effortDurationSec)}${timeStr ? ' | ' + timeStr : ''} | ${fmt(percFTP,0)}%`;
         })(),
         `⚖️ ${fmt(avgPowerPerKg,2)} W/kg | 5"🔺${best5sWattKg} W/kg`,
         `🔀 ${fmt(avgWattsFirstHalf)} W | ${fmt(avgWattsSecondHalf)} W | ${fmt(wattsRatio,2)}`,
-        `❤️ ∅${fmt(avgHR)} bpm |🔺${maxHR} bpm`,
+    (validHR.length ? `❤️ ∅${fmt(avgHR)} bpm |🔺${maxHR} bpm` : null),
         `🚴‍♂️ ${fmt(avgSpeed,1)} km/h 📏 ∅ ${fmt(avgGrade,1)}% |🔺${fmt(maxGrade,1)}%`,
         (() => {
             if (avgGrade >= 4.5) {
@@ -465,16 +537,16 @@ sortedEfforts.forEach((eff, idx) => {
 });
 
 // Annotazioni alternate sopra/sotto secondo ordine temporale
-const globalMaxAlt = Math.max(...altitude);
-const globalMinAlt = Math.min(...altitude);
+const globalMaxAlt = Math.max(...altitudeF);
+const globalMinAlt = Math.min(...altitudeF);
 const altRange = globalMaxAlt - globalMinAlt;
 
 effortsWithIndex.forEach((eff, idx) => {
-    const sectionDistanceKm = distanceKm.slice(eff.start, eff.end);
-    const sectionAltitude = altitude.slice(eff.start, eff.end);
+    const sectionDistanceKm = distanceKmF.slice(eff.start, eff.end);
+    const sectionAltitude = altitudeF.slice(eff.start, eff.end);
     const avgPower = eff.avg;
     const bgColor = getZoneColor(avgPower, FTP);
-    const effortDurationSec = time[eff.end - 1] - time[eff.start] + 1;
+    const effortDurationSec = timeF[eff.end - 1] - timeF[eff.start] + 1;
 
     // Offset proporzionale al range di altitudine
     const offsets = [0.25, 0.75, 1.25]; // percentuali del range
