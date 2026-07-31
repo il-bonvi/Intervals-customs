@@ -66,8 +66,83 @@
     }
   }
 
+  let kJkgBoundaries = [];
+  let weightKg = activity?.icu_weight || 0;
+  if (weightKg > 0 && power && power.length > 0) {
+    let totalBins = Math.max(maxMins, Math.ceil(power.length / secsPerMin));
+    let cumulativeKJkg = [0];
+    let cumulative = 0;
+
+    for (let min = 1; min <= totalBins; min++) {
+      let watt = powerByMin[min] ?? 0;
+      cumulative += (watt * secsPerMin / 1000) / weightKg;
+      cumulativeKJkg[min] = cumulative;
+    }
+
+    let bandStep = 5;
+    let maxKJkg = cumulativeKJkg[totalBins] || 0;
+
+    for (let target = bandStep; target <= maxKJkg; target += bandStep) {
+      for (let min = 1; min <= totalBins; min++) {
+        let prev = cumulativeKJkg[min - 1] ?? 0;
+        let curr = cumulativeKJkg[min] ?? prev;
+        if (curr < target) continue;
+
+        let fraction = curr > prev ? (target - prev) / (curr - prev) : 0;
+        kJkgBoundaries.push((min - 1) + fraction);
+        break;
+      }
+    }
+  }
+
+  let verticalBands = [];
+  if (kJkgBoundaries.length > 0) {
+    for (let i = 0; i < kJkgBoundaries.length; i++) {
+      verticalBands.push({
+        type: 'line',
+        xref: 'x',
+        yref: 'paper',
+        x0: kJkgBoundaries[i],
+        x1: kJkgBoundaries[i],
+        y0: 0,
+        y1: 1,
+        line: {
+          color: '#1b65f0',
+          width: 0.7
+        },
+        layer: 'above'
+      });
+    }
+  }
+
+  let sectionAnnotations = [];
+  if (weightKg > 0) {
+    let sectionEdges = [0.5, ...kJkgBoundaries, maxMins + 0.5];
+    for (let i = 0; i < sectionEdges.length - 1; i++) {
+      let start = sectionEdges[i];
+      let end = sectionEdges[i + 1];
+      let x = start + (end - start) / 2;
+      sectionAnnotations.push({
+        x: x,
+        y: 0.98,
+        xref: 'x',
+        yref: 'paper',
+        text: `${(i + 1) * 5} kJ/kg`,
+        showarrow: false,
+        align: 'center',
+        yanchor: 'top',
+        font: {
+          color: '#1b65f0',
+          size: 10,
+          family: 'Arial Black'
+        }
+      });
+    }
+  }
+
   let mins = Object.keys(altByMin).map(Number).sort((a, b) => a - b);
   let data = [];
+  let maxAltitude = Math.max(...Object.values(altByMin), 1);
 
   // Segmenti colorati senza hover
   for (let i = 0; i < mins.length - 1; i++) {
@@ -134,12 +209,16 @@
     data: data,
     layout: {
       xaxis: { showticklabels: false, showgrid: false, zeroline: false, range: [0.5, maxMins + 0.5] },
-      yaxis: { showticklabels: false, showgrid: false, zeroline: false },
+      yaxis: { showticklabels: false, showgrid: false, zeroline: false, range: [0, maxAltitude * 1.03 + 200] },
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
       margin: { l: 0, r: 0, t: 0, b: 0 },
       hovermode: 'x unified',
       showlegend: false,
       autosize: true,
-      responsive: true
+      responsive: true,
+      shapes: verticalBands,
+      annotations: sectionAnnotations
     }
   };
 }
