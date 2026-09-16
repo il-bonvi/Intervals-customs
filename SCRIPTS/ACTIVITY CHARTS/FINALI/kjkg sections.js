@@ -162,8 +162,8 @@ const data = [
         fill: 'tozeroy',
         type: 'scatter',
         fillcolor: COLORI.RIEMPIMENTO_ALTITUDINE,
-        line: { color: COLORI.LINEA_ALTITUDINE, width: 2 },
-        mode: 'lines',
+        line: { width: 0 },
+        mode: 'none',
         name: 'Altitudine',
         yaxis: 'y1',
         showlegend: false
@@ -405,6 +405,30 @@ if (inCoasting) {
 
 // Inserisci tutte le trace evidenziate dopo la traccia altimetrica
 data.splice(1 + sopraCPTraces.length, 0, ...tra80e100Traces, ...sotto80Traces, ...coastingTraces);
+
+// Copertura punto per punto per evitare tratti scoperti della traccia.
+function colorSeg(cond, col) {
+    const traces = [];
+    for (let i = 1; i < power.length; i++) {
+        if (cond(power[i - 1]) || cond(power[i])) {
+            traces.push({
+                x: [movingTime[i - 1], movingTime[i]],
+                y: [altitude[i - 1], altitude[i]],
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: col, width: 4 },
+                yaxis: 'y1',
+                showlegend: false,
+                hoverinfo: 'skip'
+            });
+        }
+    }
+    return traces;
+}
+data.push(...colorSeg(w => w < 10, COLORI.COASTING));
+data.push(...colorSeg(w => w >= 10 && w < icu.activity.icu_ftp * 0.8, COLORI.SOTTO_80));
+data.push(...colorSeg(w => w >= icu.activity.icu_ftp * 0.8 && w < icu.activity.icu_ftp, COLORI.TRA_80_100));
+data.push(...colorSeg(w => w >= icu.activity.icu_ftp, COLORI.SOPRA_CP));
 
 // Costruisci i segmenti evidenziati sopra CP
 

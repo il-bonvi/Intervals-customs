@@ -135,7 +135,6 @@ const data = [
             const mHr = Math.floor(movingSec / 3600);
             const movingTempo = `${mHr.toString().padStart(2, '0')}:${mMin.toString().padStart(2, '0')}:${mSec.toString().padStart(2, '0')}`;
             const dist = fmt(distanceKm[i], 2);
-            // Watt medi sui 10 secondi precedenti
             let watt10s = 0;
             let nWatt = 0;
             for (let j = Math.max(0, i-9); j <= i; j++) {
@@ -143,10 +142,8 @@ const data = [
                 nWatt++;
             }
             watt10s = nWatt > 0 ? watt10s / nWatt : 0;
-            // Velocità media cumulativa fino a quel punto (distanza totale / tempo totale in movimento)
             let velMedia = 0;
             if (movingTime[i] > 0) velMedia = distanceKm[i] / (movingTime[i] / 3600);
-
             const kJ_cum = i > 0 ? kJ_cumulativi[i-1] : 0;
             const kJ_cum_overCP = i > 0 ? kJ_sopraCP_cumulativi[i-1] : 0;
             let kJ_h_kg = 0, kJ_h_kg_overCP = 0;
@@ -171,13 +168,12 @@ const data = [
         fill: 'tozeroy',
         type: 'scatter',
         fillcolor: COLORI.RIEMPIMENTO_ALTITUDINE,
-        line: { color: COLORI.LINEA_ALTITUDINE, width: 2 },
-        mode: 'lines',
+        line: { width: 0 },
+        mode: 'none',
         name: 'Altitudine',
         yaxis: 'y1',
         showlegend: false
     },
-    // --- Barre kJ sopra CP per ogni sezione ---
     {
         x: kJOverCPPerSezione.map((_, i) => {
             const prev = movingTime[sezioniIdx[i-1]||0];
@@ -190,17 +186,15 @@ const data = [
         yaxis: 'y2',
         width: kJOverCPPerSezione.map((_, i) => {
             const prev = movingTime[sezioniIdx[i-1]||0];
-            return (movingTime[sezioniIdx[i]] - prev);
+            return movingTime[sezioniIdx[i]] - prev;
         }),
         opacity: COLORI.BARRA_CP_OPACITY,
         showlegend: false,
-        // Testo di hover: mostra kJ totali e watt medi della sezione
         hovertemplate: kJOverCPPerSezione.map((v, i) => {
             const startIdx = sezioniIdx[i-1]||0;
             const endIdx = sezioniIdx[i];
-            let sommaW = 0, n = 0;
-            let kJTot = 0, kJTotOverCP = 0;
-            let durataSec = movingTime[endIdx] - movingTime[startIdx];
+            let sommaW = 0, n = 0, kJTot = 0, kJTotOverCP = 0;
+            const durataSec = movingTime[endIdx] - movingTime[startIdx];
             for (let j = startIdx; j < endIdx; j++) {
                 sommaW += power[j];
                 n++;
@@ -217,109 +211,41 @@ const data = [
                 kJ_h_kg = kJTot / hours / CONFIG.pesoKg;
                 kJ_h_kg_overCP = kJTotOverCP / hours / CONFIG.pesoKg;
             }
-            return (
-                `🔋 ${Math.round(v)} kJ<br>⚡ ${wMed}W` +
-                `<br>🔥 ${kJ_h_kg.toFixed(1)} kJ/h/kg | ${kJ_h_kg_overCP.toFixed(1)} kJ/h/kg > CP<extra></extra>`
-            );
-        }),
+            return `🔋 ${Math.round(v)} kJ<br>⚡ ${wMed}W`+
+                   `<br>🔥 ${kJ_h_kg.toFixed(1)} kJ/h/kg | ${kJ_h_kg_overCP.toFixed(1)} kJ/h/kg > CP<extra></extra>`;
+        })
     }
 ];
 
-// Evidenziature stile 3m MAP: aggiungi trace per ogni intervallo continuo sopra CP
+// Robust coloring is added after the base traces below.
 let sopraCPTraces = [];
 let inInterval = false;
 let startIdx = 0;
 for (let i = 0; i < power.length; i++) {
     if (power[i] >= icu.activity.icu_ftp) {
-        if (!inInterval) {
-            inInterval = true;
-            startIdx = i;
-        }
-    } else {
-        if (inInterval) {
-            // Fine intervallo sopra CP
-            const x = movingTime.slice(startIdx, i);
-            const y = altitude.slice(startIdx, i);
-            sopraCPTraces.push({
-                x: x,
-                y: y,
-                type: 'scatter',
-                mode: 'lines',
-                line: { color: '#fa0710ff', width: 4 },
-                name: 'Sopra CP',
-                yaxis: 'y1',
-                showlegend: false,
-                hoverinfo: 'skip'
-            });
-            inInterval = false;
-        }
+        if (!inInterval) { inInterval = true; startIdx = i; }
+    } else if (inInterval) {
+        sopraCPTraces.push({ x: movingTime.slice(startIdx, i), y: altitude.slice(startIdx, i), type: 'scatter', mode: 'lines', line: { color: '#fa0710ff', width: 4 }, name: 'Sopra CP', yaxis: 'y1', showlegend: false, hoverinfo: 'skip' });
+        inInterval = false;
     }
 }
-if (inInterval) {
-    const x = movingTime.slice(startIdx);
-    const y = altitude.slice(startIdx);
-    sopraCPTraces.push({
-        x: x,
-        y: y,
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: '#fa0710ff', width: 4 },
-        name: 'Sopra CP',
-        yaxis: 'y1',
-        showlegend: false,
-        hoverinfo: 'skip'
-    });
-}
+if (inInterval) sopraCPTraces.push({ x: movingTime.slice(startIdx), y: altitude.slice(startIdx), type: 'scatter', mode: 'lines', line: { color: '#fa0710ff', width: 4 }, name: 'Sopra CP', yaxis: 'y1', showlegend: false, hoverinfo: 'skip' });
 data.splice(1, 0, ...sopraCPTraces);
 
-// --- Nuove evidenziature per intervalli di potenza ---
-// Sforzi tra 80%-100% CP (giallo)
+const min80 = icu.activity.icu_ftp * 0.8;
 let tra80e100Traces = [];
 let in80e100 = false;
 let start80e100 = 0;
-const min80 = icu.activity.icu_ftp * 0.8;
 for (let i = 0; i < power.length; i++) {
     if (power[i] >= min80 && power[i] < icu.activity.icu_ftp) {
-        if (!in80e100) {
-            in80e100 = true;
-            start80e100 = i;
-        }
-    } else {
-        if (in80e100) {
-            const x = movingTime.slice(start80e100, i);
-            const y = altitude.slice(start80e100, i);
-            tra80e100Traces.push({
-                x: x,
-                y: y,
-                type: 'scatter',
-                mode: 'lines',
-                line: { color: '#ffe600', width: 4 },
-                name: '80-100% CP',
-                yaxis: 'y1',
-                showlegend: false,
-                hoverinfo: 'skip'
-            });
-            in80e100 = false;
-        }
+        if (!in80e100) { in80e100 = true; start80e100 = i; }
+    } else if (in80e100) {
+        tra80e100Traces.push({ x: movingTime.slice(start80e100, i), y: altitude.slice(start80e100, i), type: 'scatter', mode: 'lines', line: { color: '#ffe600', width: 4 }, name: '80-100% CP', yaxis: 'y1', showlegend: false, hoverinfo: 'skip' });
+        in80e100 = false;
     }
 }
-if (in80e100) {
-    const x = movingTime.slice(start80e100);
-    const y = altitude.slice(start80e100);
-    tra80e100Traces.push({
-        x: x,
-        y: y,
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: '#ffe600', width: 4 },
-        name: '80-100% CP',
-        yaxis: 'y1',
-        showlegend: false,
-        hoverinfo: 'skip'
-    });
-}
+if (in80e100) tra80e100Traces.push({ x: movingTime.slice(start80e100), y: altitude.slice(start80e100), type: 'scatter', mode: 'lines', line: { color: '#ffe600', width: 4 }, name: '80-100% CP', yaxis: 'y1', showlegend: false, hoverinfo: 'skip' });
 
-// Sforzi sotto 80% CP (verde)
 let sotto80Traces = [];
 let inSotto80 = false;
 let startSotto80 = 0;
@@ -409,6 +335,29 @@ if (inCoasting) {
     });
 }
 data.splice(1 + sopraCPTraces.length, 0, ...tra80e100Traces, ...sotto80Traces, ...coastingTraces);
+
+function colorSeg(cond, col) {
+    const traces = [];
+    for (let i = 1; i < power.length; i++) {
+        if (cond(power[i - 1]) || cond(power[i])) {
+            traces.push({
+                x: [movingTime[i - 1], movingTime[i]],
+                y: [altitude[i - 1], altitude[i]],
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: col, width: 4 },
+                yaxis: 'y1',
+                showlegend: false,
+                hoverinfo: 'skip'
+            });
+        }
+    }
+    return traces;
+}
+data.push(...colorSeg(w => w < 10, COLORI.COASTING));
+data.push(...colorSeg(w => w >= 10 && w < icu.activity.icu_ftp * 0.8, COLORI.SOTTO_80));
+data.push(...colorSeg(w => w >= icu.activity.icu_ftp * 0.8 && w < icu.activity.icu_ftp, COLORI.TRA_80_100));
+data.push(...colorSeg(w => w >= icu.activity.icu_ftp, COLORI.SOPRA_CP));
 
 // Annotazioni sopra l'asse X con il valore kJ di ogni sezione
 const kJTotaliPerSezione = sezioniIdx.map((idx, i) => {
