@@ -1,17 +1,17 @@
-// Bar chart for all 30s efforts above 130% FTP
-const DURATION_3mbar = 30;
-const activity_3mbar = icu.activity;
-const weight_3mbar = activity_3mbar.icu_weight;
-const FTP_3mbar = activity_3mbar.icu_ftp;
+// Bar chart for all 30s efforts above 105% FTP
+const DURATION_30sbar = 30;
+const activity_30sbar = icu.activity;
+const weight_30sbar = activity_30sbar.icu_weight;
+const FTP_30sbar = activity_30sbar.icu_ftp;
 
-function getStreamData_3mbar(streamName) {
+function getStreamData_30sbar(streamName) {
     const stream = icu.streams.get(streamName);
     return stream && stream.data ? stream.data.map(value => value ?? 0) : Array(icu.streams.get("time").data.length).fill(0);
 }
-const power_3mbar = getStreamData_3mbar("fixed_watts");
+const power_30sbar = getStreamData_30sbar("fixed_watts");
 
-// Get all non-overlapping 30s efforts above 130% FTP (exclude overlapping windows)
-function getNonOverlappingEffortsAboveThreshold_3mbar(data, n, threshold, samplingRate = 1) {
+// Get all non-overlapping 30s efforts above 105% FTP (exclude overlapping windows)
+function getNonOverlappingEffortsAboveThreshold_30sbar(data, n, threshold, samplingRate = 1) {
     const windowSize = n * samplingRate;
     let results = [];
     let sum = 0;
@@ -54,17 +54,17 @@ function getNonOverlappingEffortsAboveThreshold_3mbar(data, n, threshold, sampli
 }
 
 
-let x_3mbar = [];
-let y_3mbar = [];
-let hover_3mbar = [];
-let effortData_3mbar = [];
-const VISIBLE_BARS_3mbar = 7; // Number of bars visible at once
-const heartrate_3mbar = getStreamData_3mbar("fixed_heartrate");
-const time_3mbar = getStreamData_3mbar("time");
-const distance_3mbar = getStreamData_3mbar("distance");
-const altitude_3mbar = getStreamData_3mbar("fixed_altitude");
-const grade_3mbar = getStreamData_3mbar("grade_smooth");
-function secondsToHms_3mbar(seconds) {
+let x_30sbar = [];
+let y_30sbar = [];
+let hover_30sbar = [];
+let effortData_30sbar = [];
+const VISIBLE_BARS_30sbar = 7; // Number of bars visible at once
+const heartrate_30sbar = getStreamData_30sbar("fixed_heartrate");
+const time_30sbar = getStreamData_30sbar("time");
+const distance_30sbar = getStreamData_30sbar("distance");
+const altitude_30sbar = getStreamData_30sbar("fixed_altitude");
+const grade_30sbar = getStreamData_30sbar("grade_smooth");
+function secondsToHms_30sbar(seconds) {
     seconds = Math.floor(seconds);
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -74,48 +74,48 @@ function secondsToHms_3mbar(seconds) {
     str += (h > 0 ? String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
     return str;
 }
-const threshold_3mbar = 1.3 * FTP_3mbar; // EFFORT THRESHOLD
+const threshold_30sbar = 1.3 * FTP_30sbar; // EFFORT THRESHOLD
 
-const allEfforts_3mbar = getNonOverlappingEffortsAboveThreshold_3mbar(power_3mbar, DURATION_3mbar, threshold_3mbar, 1);
-for (const [idx, best] of allEfforts_3mbar.entries()) {
+const allEfforts_30sbar = getNonOverlappingEffortsAboveThreshold_30sbar(power_30sbar, DURATION_30sbar, threshold_30sbar, 1);
+for (const [idx, best] of allEfforts_30sbar.entries()) {
     const bestStart = best.start;
-    const bestEnd = bestStart + DURATION_3mbar;
-    const sectionHR = heartrate_3mbar.slice(bestStart, bestEnd);
-    const sectionDistance = distance_3mbar.slice(bestStart, bestEnd);
-    const sectionAltitude = altitude_3mbar.slice(bestStart, bestEnd);
-    const sectionGrade = grade_3mbar.slice(bestStart, bestEnd);
+    const bestEnd = bestStart + DURATION_30sbar;
+    const sectionHR = heartrate_30sbar.slice(bestStart, bestEnd);
+    const sectionDistance = distance_30sbar.slice(bestStart, bestEnd);
+    const sectionAltitude = altitude_30sbar.slice(bestStart, bestEnd);
+    const sectionGrade = grade_30sbar.slice(bestStart, bestEnd);
     const avgHR = sectionHR.reduce((a, b) => a + b, 0) / sectionHR.length;
     const maxHR = Math.max(...sectionHR);
-    const startTime = secondsToHms_3mbar(time_3mbar[bestStart]);
+    const startTime = secondsToHms_30sbar(time_30sbar[bestStart]);
     const avgPower = best.avg;
-    const avgPowerPerKg = avgPower / weight_3mbar;
+    const avgPowerPerKg = avgPower / weight_30sbar;
     const dist = sectionDistance[sectionDistance.length - 1] - sectionDistance[0];
     const distKm = dist / 1000;
     const elevationGain = sectionAltitude[sectionAltitude.length - 1] - sectionAltitude[0];
     const avgGrade = elevationGain / dist * 100;
     const maxGrade = Math.max(...sectionGrade);
     // Ratio: primo 15s, secondo 15s, ratio
-    const firstHalf = power_3mbar.slice(bestStart, bestStart + DURATION_3mbar/2);
-    const secondHalf = power_3mbar.slice(bestStart + DURATION_3mbar/2, bestEnd);
+    const firstHalf = power_30sbar.slice(bestStart, bestStart + DURATION_30sbar/2);
+    const secondHalf = power_30sbar.slice(bestStart + DURATION_30sbar/2, bestEnd);
     const rat_1 = firstHalf.reduce((a,b)=>a+b,0)/firstHalf.length;
     const rat_2 = secondHalf.reduce((a,b)=>a+b,0)/secondHalf.length;
     const ratio = rat_2 / rat_1;
     // VAM
-    const climbTimeH = DURATION_3mbar / 3600;
+    const climbTimeH = DURATION_30sbar / 3600;
     const ascentSpeed = elevationGain / climbTimeH;
-    const avgHorizontalSpeed = distKm / (DURATION_3mbar / 3600);
+    const avgHorizontalSpeed = distKm / (DURATION_30sbar / 3600);
     // Best 5s
     let best5sWatts = 0;
-    for (let i = 0; i <= power_3mbar.slice(bestStart, bestEnd).length - 5; i++) {
-        const avg5 = power_3mbar.slice(bestStart + i, bestStart + i + 5).reduce((a,b)=>a+b,0)/5;
+    for (let i = 0; i <= power_30sbar.slice(bestStart, bestEnd).length - 5; i++) {
+        const avg5 = power_30sbar.slice(bestStart + i, bestStart + i + 5).reduce((a,b)=>a+b,0)/5;
         if (avg5 > best5sWatts) best5sWatts = avg5;
     }
-    const best5sPerKg = best5sWatts / weight_3mbar;
+    const best5sPerKg = best5sWatts / weight_30sbar;
     // Teorici (come in PIAN HC)
     const gradientFactor = (2 + avgGrade / 10) * 100;
     const TEORICWKG = ascentSpeed / gradientFactor;
     const TEORICVAM = avgPowerPerKg * gradientFactor;
-    effortData_3mbar.push({
+    effortData_30sbar.push({
         idx,
         avgPower,
         avgPowerPerKg,
@@ -141,11 +141,11 @@ for (const [idx, best] of allEfforts_3mbar.entries()) {
 }
 
 // Ordina per watt decrescente
-effortData_3mbar.sort((a, b) => b.avgPower - a.avgPower);
-for (const [i, effort] of effortData_3mbar.entries()) {
-    x_3mbar.push(`${i+1}`);
-    y_3mbar.push(effort.avgPower);
-    hover_3mbar.push(
+effortData_30sbar.sort((a, b) => b.avgPower - a.avgPower);
+for (const [i, effort] of effortData_30sbar.entries()) {
+    x_30sbar.push(`${i+1}`);
+    y_30sbar.push(effort.avgPower);
+    hover_30sbar.push(
         `📏 ${(effort.dist / 1000).toFixed(2)} km (${effort.elevationGain.toFixed(0)} m)<br>`+
         `📈 ∅ ${effort.avgGrade.toFixed(1)}% | max. ${effort.maxGrade.toFixed(1)}%<br>`+
         `⚡ ${effort.avgPower.toFixed(0)} W | 5″ ${effort.best5sWatts.toFixed(0)} W<br>`+
@@ -158,7 +158,7 @@ for (const [i, effort] of effortData_3mbar.entries()) {
 }
 
 
-function getZoneColor_3mbar(avgPower, ftp) {
+function getZoneColor_30sbar(avgPower, ftp) {
     const percentage = (avgPower / ftp) * 100;
     if (percentage < 141) return "4c72b0";        // Z2
     if (percentage < 161) return "55a868";         // Z3
@@ -168,22 +168,22 @@ function getZoneColor_3mbar(avgPower, ftp) {
     return "8172b3";                                // Z7+;
 }
 
-const barColors_3mbar = y_3mbar.map((v) => getZoneColor_3mbar(v, FTP_3mbar));
+const barColors_30sbar = y_30sbar.map((v) => getZoneColor_30sbar(v, FTP_30sbar));
 
-const data_3mbar = [
+const data_30sbar = [
   {
-    x: x_3mbar,
-    y: y_3mbar,
+    x: x_30sbar,
+    y: y_30sbar,
     type: 'bar',
     marker: {
-      color: barColors_3mbar
+      color: barColors_30sbar
     },
-    text: x_3mbar.map((label, i) =>
-      `${y_3mbar[i].toFixed(0)} W | ${effortData_3mbar[i].avgPowerPerKg.toFixed(2)} W/kg<br>`
-      + `${effortData_3mbar[i].rat_1.toFixed(0)} W | ${effortData_3mbar[i].rat_2.toFixed(0)} W | ${effortData_3mbar[i].ratio.toFixed(2)}<br>`
-      + `∅ ${effortData_3mbar[i].avgHR.toFixed(0)} bpm | ${effortData_3mbar[i].maxHR} bpm<br>`
-      + `${effortData_3mbar[i].ascentSpeed.toFixed(0)} m/h | ∅ ${effortData_3mbar[i].avgGrade.toFixed(1)}%<br>`
-      + `${effortData_3mbar[i].startTime}`
+    text: x_30sbar.map((label, i) =>
+      `${y_30sbar[i].toFixed(0)} W | ${effortData_30sbar[i].avgPowerPerKg.toFixed(2)} W/kg<br>`
+      + `${effortData_30sbar[i].rat_1.toFixed(0)} W | ${effortData_30sbar[i].rat_2.toFixed(0)} W | ${effortData_30sbar[i].ratio.toFixed(2)}<br>`
+      + `∅ ${effortData_30sbar[i].avgHR.toFixed(0)} bpm | ${effortData_30sbar[i].maxHR} bpm<br>`
+      + `${effortData_30sbar[i].ascentSpeed.toFixed(0)} m/h | ∅ ${effortData_30sbar[i].avgGrade.toFixed(1)}%<br>`
+      + `${effortData_30sbar[i].startTime}`
     ),
     textposition: 'inside',
     insidetextanchor: 'start',
@@ -193,7 +193,7 @@ const data_3mbar = [
       family: 'Arial Black'
     },
     hoverinfo: 'text',
-    hovertext: hover_3mbar,
+    hovertext: hover_30sbar,
     hoverlabel: { font: { color: '#000', family: 'Arial', size: 13 }, align: 'left' },
     name: 'Avg Power',
     visible: true
@@ -201,7 +201,7 @@ const data_3mbar = [
 ];
 
 
-const layout_3mbar = {
+const layout_30sbar = {
   title: '30" efforts (>130% FTP)',
   barmode: 'group',
   showlegend: false,
@@ -209,7 +209,7 @@ const layout_3mbar = {
   margin: {l: 40, r: 20, t: 40, b: 40},
   xaxis: {
     title: 'Effort',
-    range: [0, VISIBLE_BARS_3mbar - 0.5], // Show only n bars at a time
+    range: [0, VISIBLE_BARS_30sbar - 0.5], // Show only n bars at a time
     fixedrange: false,
     autorange: false,
     tickmode: 'linear',
@@ -228,5 +228,5 @@ const layout_3mbar = {
   },
 };
 
-chart = { data: data_3mbar, layout: layout_3mbar };
+chart = { data: data_30sbar, layout: layout_30sbar };
 chart;

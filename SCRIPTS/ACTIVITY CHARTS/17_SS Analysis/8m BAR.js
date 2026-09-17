@@ -1,11 +1,9 @@
-// =====================
-// CONFIGURAZIONE PRINCIPALE
-// =====================
 (function() {
   const CONFIG = {
-    // === PARAMETRI PRINCIPALI: modificare qui per cambiare la logica del grafico ===
-    DURATION: 180,                    // Durata finestra sforzo (secondi)
-    MIN_EFFORT_INTENSITY_FTP: 100,    // Soglia minima effort (% FTP)
+    // CONFIGURAZIONE PRINCIPALE
+    // ============================================================================
+    DURATION: 480,                    // Durata finestra sforzo (secondi)
+    MIN_EFFORT_INTENSITY_FTP: 90,    // Soglia minima effort (% FTP)
     // ============================================================================
     // Ordinamento barre possibile su (valori stringa):
     // 'avgPower', 'avgPowerPerKg', 'avgHR', 'maxHR', 'startTime', 'bestStart',
@@ -282,6 +280,5 @@ const durationMin = duration % 60 === 0 ? (duration/60) + '′' : duration + 's'
 LAYOUT.title = `${durationMin} efforts (>${minEffort}% FTP)`;
 LAYOUT.xaxis.range = [0, CONFIG.VISIBLE_BARS - 0.5];
 
-chart = { data: data, layout: LAYOUT };
-chart;
+return { data: data, layout: LAYOUT };
 })();

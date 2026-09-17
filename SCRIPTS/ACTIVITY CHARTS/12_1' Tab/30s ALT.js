@@ -93,11 +93,11 @@ function getTopNBestAveragesOverNSeconds(data, n, topN = 2, samplingRate = 1) {
     ];
     let annotations_30schart = [];
     const bests_30schart = getTopNBestAveragesOverNSeconds(power_30schart, WINDOW_SECONDS_30schart, TOP_N_30schart, 1);
-    bests_30schart.forEach((best, idx) => {
-
+    let idx = 0;
+    bests_30schart.forEach((best) => {
         const avgPower = best.avg;
-        // Filter: only show efforts >= 105% FTP
-        if (avgPower < 1.05 * FTP_30schart) {
+        // Filter: only show efforts >= 130% FTP
+        if (avgPower < 1.3 * FTP_30schart) {
             return;
         }
 
@@ -172,10 +172,11 @@ function getTopNBestAveragesOverNSeconds(data, n, topN = 2, samplingRate = 1) {
             bgcolor: bgColor,
             opacity: 0.9
         });
+        idx++;
     });
 
     const layout_30schart = {
-        title: `Top 25 Best 30" Power Efforts` ,
+        title: `30" efforts (>130% FTP)` ,
         xaxis: { title: 'Distance (km)' },
         yaxis: { title: 'Altitude (m)' },
         annotations: annotations_30schart,

@@ -1,16 +1,14 @@
-
-{
-    // --- CONFIGURATION ---
-    
-    // Duration of effort window in seconds (e.g., 180 for 3 minutes)
+(() => {
+    // --- CONFIGURAZIONE INIZIALE ---
+    // Durata della finestra di sforzo in secondi (es: 180 per 3 minuti)
     const EFFORT_WINDOW_SECONDS = 180;
-    // Minimum intensity as a fraction of FTP (e.g., 1.0 for 100% FTP)
-    const MIN_EFFORT_INTENSITY_FTP = 1.0;
-    // FTP value from activity
+    // Intensità minima come percentuale di FTP (es: 100 per 100% FTP)
+    const MIN_EFFORT_INTENSITY_FTP = 100;
+    // Valore FTP dall'attività
     const FTP = icu.activity.icu_ftp;
-    // Minimum average gradient threshold for showing theoretical values
+    // Soglia minima di pendenza media per mostrare valori teorici
     const MIN_AVG_GRADE_FOR_THEORETICAL = 4.5;
-    // Zone color configuration: array of { threshold, color, label }
+    // Configurazione colori delle zone: array di { threshold, color, label }
     const ZONE_COLORS = [
         { threshold: 106, color: "#1f77b4", label: "CP–just above" },
         { threshold: 116, color: "#3eb33eff", label: "Threshold+" },
@@ -19,11 +17,9 @@
         { threshold: 151, color: "#7315caff", label: "Supra-MAP" },
     ];
     const ZONE_COLOR_DEFAULT = { color: "#000000ff", label: "Anaerobico" };
-    // Helper for formatting numbers
+    // Helper per formattare numeri
     const fmt = (num, digits = 0) => Number(num).toFixed(digits);
-
-    // --- END CONFIGURATION ---
-
+    // --- FINE CONFIGURAZIONE INIZIALE ---
 
     function getStreamData(streamName) {
         const stream = icu.streams.get(streamName);
@@ -102,8 +98,9 @@
         return results;
     }
 
-    // Find all non-overlapping efforts above configured threshold
-    const allEfforts = getAllNonOverlappingEffortsAboveThreshold(power, EFFORT_WINDOW_SECONDS, MIN_EFFORT_INTENSITY_FTP * FTP, 1);
+    // Trova tutti gli sforzi non sovrapposti sopra la soglia configurata
+    // MIN_EFFORT_INTENSITY_FTP ora è percentuale, quindi dividi per 100
+    const allEfforts = getAllNonOverlappingEffortsAboveThreshold(power, EFFORT_WINDOW_SECONDS, (MIN_EFFORT_INTENSITY_FTP / 100) * FTP, 1);
     // Sort allEfforts by avgPower descending for legend order
     const sortedEfforts = allEfforts.slice().sort((a, b) => b.avg - a.avg);
     sortedEfforts.forEach((best, idx) => {
@@ -234,7 +231,7 @@
     const effortSec = EFFORT_WINDOW_SECONDS % 60;
     const effortLabel = effortSec > 0 ? `${effortMin}m ${effortSec}s` : `${effortMin}m`;
     const layout = {
-        title: `All ${effortLabel} Power Efforts >${fmt(MIN_EFFORT_INTENSITY_FTP*100,0)}% CP`,
+        title: `All ${effortLabel} Power Efforts >${fmt(MIN_EFFORT_INTENSITY_FTP,0)}% CP`,
         xaxis: { title: 'Distance (km)' },
         yaxis: { title: 'Altitude (m)' },
         annotations: annotations,
@@ -245,6 +242,5 @@
     };
 
     const chart = { data: traces, layout: layout };
-    chart;
-}
-
+    return chart;
+})();
