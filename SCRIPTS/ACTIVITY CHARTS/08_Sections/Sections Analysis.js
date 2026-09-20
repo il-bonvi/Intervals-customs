@@ -50,7 +50,7 @@ const CONFIG = {
 
   // --- LAYOUT ---
   HEIGHT: 580,
-  MARGIN: { t: 90, l: 50, r: 55, b: 50 },
+  MARGIN: { t: 165, l: 50, r: 55, b: 50 },
   TITLE: 'NP Sections + VI + Surges',
 };
 
@@ -529,12 +529,12 @@ sezioni.forEach((sec, idx) => {
 
   annotations.push({
     x: midX,
-    y: 0.98,
+    y: 1.02,
     xref: 'x',
     yref: 'paper',
     text: label,
     showarrow: false,
-    yanchor: 'top',
+    yanchor: 'bottom',
     xanchor: 'center',
     align: 'center',
     font: { family: 'Arial Black', size: 10 },
@@ -580,7 +580,8 @@ const layout = {
   margin: CONFIG.MARGIN,
   title: {
     text: `${CONFIG.TITLE}  ·  sezioni ${CONFIG.SECTION_MINUTES} min  ·  ${surge1Label}  ·  ${surge2Label}`,
-    font: { size: 13 }
+    font: { size: 13 },
+    y: 1.25
   },
   xaxis: {
     title: 'Distance (km)',
