@@ -89,7 +89,6 @@ function getTopNBestAveragesOverNSeconds(data, n, topN = 2, samplingRate = 1) {
     const grade = getStreamData("grade_smooth");
     const time = getStreamData("time");
     const weight = icu.activity.icu_weight;
-    const speedKmh = getStreamData("velocity_smooth").map(v => (v || 0) * 3.6);
 
     // Fix initial altitude values
     const firstNonZeroAltitude = altitude.find(value => value !== 0);
@@ -175,7 +174,6 @@ function getTopNBestAveragesOverNSeconds(data, n, topN = 2, samplingRate = 1) {
         const sectionDistanceKm = distanceKm.slice(bestStart, bestEnd);
         const sectionGrade = grade.slice(bestStart, bestEnd);
         const sectionTime = time.slice(bestStart, bestEnd);
-        const sectionSpeedKmh = speedKmh.slice(bestStart, bestEnd);
 
         // --- Metrics block ---
         const minHR = Math.min(...sectionHR);
@@ -187,11 +185,11 @@ function getTopNBestAveragesOverNSeconds(data, n, topN = 2, samplingRate = 1) {
         const maxGrade = Math.max(...sectionGrade);
         const climbTimeInSeconds = sectionTime[sectionTime.length - 1] - sectionTime[0] + 1;
         const ascentSpeed = elevationGain / (climbTimeInSeconds / 3600);
-        // --- Speed details (da stream velocity_smooth) ---
+        // --- Speed details ---
         let v1 = '', v2 = '';
-        if (sectionSpeedKmh.length >= 1) {
-            v1 = sectionSpeedKmh[0].toFixed(1); // km/h ingresso finestra
-            v2 = sectionSpeedKmh[sectionSpeedKmh.length - 1].toFixed(1); // km/h uscita finestra
+        if (sectionDistanceKm.length >= 2) {
+            v1 = ((sectionDistanceKm[1] - sectionDistanceKm[0]) * 3600).toFixed(1); // km/h primo secondo
+            v2 = ((sectionDistanceKm[sectionDistanceKm.length-1] - sectionDistanceKm[sectionDistanceKm.length-2]) * 3600).toFixed(1); // km/h ultimo secondo
         }
         // --- Start time ---
         let startTime = '';

@@ -12,7 +12,6 @@ const power_surge8 = getStreamData_surge8("fixed_watts");
 const heartrate_surge8 = getStreamData_surge8("fixed_heartrate");
 const time_surge8 = getStreamData_surge8("time");
 const distance_surge8 = getStreamData_surge8("distance"); // meters
-const speedKmh_surge8 = getStreamData_surge8("velocity_smooth").map(v => (v || 0) * 3.6);
 
 function getTopNBestAveragesOverNSeconds_surge8(data, n, topN = 20, samplingRate = 1) {
     const windowSize = n * samplingRate;
@@ -73,9 +72,9 @@ bests_surge8.forEach((best, idx) => {
     const drop2_2 = (last2 / first2) * 100;
     // HR
     const avgHR = sectionHR.reduce((a, b) => a + b, 0) / sectionHR.length;
-    // Avg speed (media dello stream velocity_smooth sulla finestra)
-    const sectionSpeedKmh = speedKmh_surge8.slice(bestStart, bestEnd);
-    const avgSpeed = sectionSpeedKmh.reduce((a, b) => a + b, 0) / sectionSpeedKmh.length;
+    // Avg speed
+    const dist = sectionDistance[sectionDistance.length - 1] - sectionDistance[0];
+    const avgSpeed = (dist / 1000) / (DURATION_surge8 / 3600);
     // Start time formatted
     const startTime = secondsToHms_surge8(time_surge8[bestStart]);
     // Find chronological index (1-based)
