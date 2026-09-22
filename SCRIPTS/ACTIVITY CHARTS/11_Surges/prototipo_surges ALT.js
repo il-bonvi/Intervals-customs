@@ -385,7 +385,7 @@ const CONFIG_surges = {
             `⚙️ 🔺 ${maxTorque != null ? Math.round(maxTorque) : ''} Nm | 🔻 ${minTorque != null ? Math.round(minTorque) : ''} Nm`,
             `❤️ 🔻 ${minHR.toFixed(0)} bpm | 🔺 ${maxHR} bpm`,
             hasOfficialSpeed ? `🚀 ⬅️ ${vEntry.toFixed(1)} km/h | 🏁 ${vExit.toFixed(1)} km/h | Δ ${deltaV>=0?'+':''}${deltaV.toFixed(1)} km/h` : '🚀 velocità non disponibile',
-            hasOfficialSpeed ? `📈 Ø acc ${avgAcc.toFixed(2)} km/h/s | Vmax ${vMax.toFixed(1)} km/h` : '',
+            hasOfficialSpeed ? `📈 Ø acc ${avgAcc.toFixed(2)} km/h/s | ⬆️Vmax ${vMax.toFixed(1)} km/h` : '',
             hasOfficialSpeed && acc_2_5 != null ? `📈 2→5s:         ${acc_2_5.toFixed(2)} km/h/s (${v_at_2.toFixed(1)} → ${v_at_5.toFixed(1)} km/h)` : '',
             hasOfficialSpeed && acc_entry_5 != null ? `🚀 ⬅️→5s:      ${acc_entry_5.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${v_at_5s.toFixed(1)} km/h)` : '',
             hasOfficialSpeed ? `🚀 ⬅️→Vmax: ${acc_entry_vmax.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${vMax.toFixed(1)} km/h)` : '',
