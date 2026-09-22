@@ -14,7 +14,7 @@ const CONFIG_surges = {
   MIN_SPEED_RISE: 2,
 
   // Velocità di entrata
-  ENTRY_SPEED_SECONDS: 5,
+  ENTRY_SPEED_SECONDS: 4,
 
 //COLORS
   ZONES: [
@@ -34,19 +34,32 @@ const CONFIG_surges = {
 
     function getStreamData(streamName) {
         const stream = icu.streams.get(streamName);
-        return stream && stream.data ? stream.data.map(value => value ?? 0) : Array(icu.streams.get("time").data.length).fill(0);
+        return stream && stream.data ? stream.data.map(value => value ?? 0) : null;
     }
 
-    const altitude = getStreamData("fixed_altitude");
-    const distance = getStreamData("distance");
+    const altitude = getStreamData("fixed_altitude") || Array(icu.streams.get("time").data.length).fill(0);
+    const distance = getStreamData("distance") || Array(icu.streams.get("time").data.length).fill(0);
     const distanceKm = distance.map(d => d / 1000);
-    const power = getStreamData("fixed_watts");
-    const heartrate = getStreamData("fixed_heartrate");
-    const grade = getStreamData("grade_smooth");
-    const time = getStreamData("time");
+    const power = getStreamData("fixed_watts") || Array(icu.streams.get("time").data.length).fill(0);
+    const heartrate = getStreamData("fixed_heartrate") || Array(icu.streams.get("time").data.length).fill(0);
+    const grade = getStreamData("grade_smooth") || Array(icu.streams.get("time").data.length).fill(0);
+    const time = getStreamData("time") || [];
     const weight = icu.activity.icu_weight;
-    const cadence = getStreamData("cadence");
-    const torque = getStreamData("torque");
+    const cadence = getStreamData("cadence") || Array(time.length).fill(0);
+    const torque = getStreamData("torque") || Array(time.length).fill(0);
+
+    // ===== VELOCITÀ UFFICIALE DI INTERVALS =====
+    // Prova i nomi più comuni. Se nessuno esiste → speedStream = null
+    let speedStream = getStreamData("velocity_smooth");
+
+    // Se non c'è nessuno stream di velocità, lo segnaliamo chiaramente
+    const hasOfficialSpeed = speedStream !== null && speedStream.length > 0;
+
+    // Conversione: Intervals di solito fornisce m/s → moltiplichiamo per 3.6 per avere km/h
+    const speedKmh = hasOfficialSpeed 
+        ? speedStream.map(v => (v || 0) * 3.6) 
+        : null;
+    // ==========================================
 
     const firstNonZeroAltitude = altitude.find(v => v !== 0);
     if (firstNonZeroAltitude !== undefined) {
@@ -123,14 +136,14 @@ const CONFIG_surges = {
     }
 
     function findBetterStartBySpeedMin(powerStart, powerEnd, lookbackSamples, smoothSamples, lowPowerThr, minRise) {
+        // Se non abbiamo lo stream ufficiale, non facciamo lookback basato sulla velocità
+        if (!hasOfficialSpeed) return powerStart;
+
         const from = Math.max(0, powerStart - lookbackSamples);
 
         const rawSpeed = [];
         for (let i = from; i <= powerEnd; i++) {
-            if (i === 0) { rawSpeed.push(0); continue; }
-            const dd = distanceKm[i] - distanceKm[i-1];
-            const dt = time[i] - time[i-1];
-            rawSpeed.push(dt > 0 ? (dd / dt) * 3600 : 0);
+            rawSpeed.push(speedKmh[i] || 0);
         }
 
         const smooth = [];
@@ -225,33 +238,34 @@ const CONFIG_surges = {
         const avgGrade = dist > 0 ? (elevationGain / dist * 100) : 0;
         const maxGrade = Math.max(...sectionGrade);
 
-        // ========== SPEED & ACCELERATIONS ==========
-        function speedAt(idx) {
-            if (idx <= 0 || idx >= distanceKm.length) return 0;
-            const dd = distanceKm[idx] - distanceKm[idx - 1];
-            const dt = time[idx] - time[idx - 1];
-            return dt > 0 ? (dd / dt) * 3600 : 0;
+        // ========== SPEED & ACCELERATIONS (usa solo stream ufficiale) ==========
+        function getSpeed(idx) {
+            if (!hasOfficialSpeed || idx < 0 || idx >= speedKmh.length) return NaN;
+            return speedKmh[idx];
         }
 
         // v entrata = media degli N secondi prima
         const entryWindow = CONFIG_surges.ENTRY_SPEED_SECONDS || 5;
         let vEntrySum = 0, vEntryCount = 0;
-        for (let k = Math.max(1, bestStart - entryWindow); k < bestStart; k++) {
-            vEntrySum += speedAt(k);
-            vEntryCount++;
+        for (let k = Math.max(0, bestStart - entryWindow); k < bestStart; k++) {
+            const s = getSpeed(k);
+            if (!isNaN(s)) {
+                vEntrySum += s;
+                vEntryCount++;
+            }
         }
-        const vEntry = vEntryCount > 0 ? vEntrySum / vEntryCount : speedAt(bestStart);
+        const vEntry = vEntryCount > 0 ? vEntrySum / vEntryCount : getSpeed(bestStart);
 
         // v uscita
         const lastIdx = cluster.end;
-        const vExit = (speedAt(lastIdx) + speedAt(Math.max(lastIdx - 1, bestStart))) / 2;
+        const vExit = (getSpeed(lastIdx) + getSpeed(Math.max(lastIdx - 1, bestStart))) / 2;
 
-        // Vmax + indice
+        // Vmax
         let vMax = 0;
         let vMaxIdx = bestStart;
         for (let k = bestStart; k <= cluster.end; k++) {
-            const s = speedAt(k);
-            if (s > vMax) {
+            const s = getSpeed(k);
+            if (!isNaN(s) && s > vMax) {
                 vMax = s;
                 vMaxIdx = k;
             }
@@ -264,29 +278,31 @@ const CONFIG_surges = {
         // Acc 2→5s
         let acc_2_5 = null, v_at_2 = null, v_at_5 = null;
         if (displayDurationSec >= 6) {
-            v_at_2 = speedAt(bestStart + 2);
-            v_at_5 = speedAt(bestStart + 5);
-            acc_2_5 = (v_at_5 - v_at_2) / 3;
+            v_at_2 = getSpeed(bestStart + 2);
+            v_at_5 = getSpeed(bestStart + 5);
+            if (!isNaN(v_at_2) && !isNaN(v_at_5)) {
+                acc_2_5 = (v_at_5 - v_at_2) / 3;
+            }
         }
 
         // Acc entrata → 5s
         let acc_entry_5 = null;
         let v_at_5s = null;
         if (displayDurationSec >= 5) {
-            v_at_5s = speedAt(bestStart + 5);
-            acc_entry_5 = (v_at_5s - vEntry) / 5;
+            v_at_5s = getSpeed(bestStart + 5);
+            if (!isNaN(v_at_5s) && !isNaN(vEntry)) {
+                acc_entry_5 = (v_at_5s - vEntry) / 5;
+            }
         }
 
         // Acc entrata → Vmax
         const timeToVmax = time[vMaxIdx] - time[bestStart];
-        const acc_entry_vmax = timeToVmax > 0 ? (vMax - vEntry) / timeToVmax : 0;
-        // ===========================================
+        const acc_entry_vmax = (timeToVmax > 0 && !isNaN(vMax) && !isNaN(vEntry)) ? (vMax - vEntry) / timeToVmax : 0;
+        // =====================================================================
 
         // ========== POWER METRICS ==========
-        // Power di entrata
         const powerEntry = (power[bestStart] + (power[bestStart + 1] || power[bestStart])) / 2;
 
-        // Power minima DOPO almeno 2 secondi + secondo in cui avviene
         let minWattAfter2 = null;
         let minWattAfter2Idx = -1;
         let minWattAfter2Sec = null;
@@ -297,7 +313,7 @@ const CONFIG_surges = {
                 if (power[k] < minWattAfter2) {
                     minWattAfter2 = power[k];
                     minWattAfter2Idx = k;
-                    minWattAfter2Sec = k - bestStart;   // secondo relativo dallo start (0-based)
+                    minWattAfter2Sec = k - bestStart;
                 }
             }
         }
@@ -356,19 +372,23 @@ const CONFIG_surges = {
             return `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
         }
 
+        // Se non c'è lo stream di velocità, mostriamo chiaramente "NO SPEED STREAM"
+        const speedWarning = hasOfficialSpeed ? '' : '⚠️ NO SPEED STREAM';
+
         const traceText = [
             `#${idx+1} | Ø ${avgCadence != null ? Math.round(avgCadence) : ''} rpm | Ø ${avgTorque != null ? Math.round(avgTorque) : ''} Nm | ⏱ ${displayDurationSec} s`,
+            speedWarning,
             `⬅️ ${powerEntry.toFixed(0)} W @ ${rpmAtEntry} rpm | ${torqueAtEntry} Nm`,
             maxWatt != null ? `⚡ 🔺 ${maxWatt.toFixed(0)} W (${maxWattSec} s) @ ${rpmAtMax} rpm | ${torqueAtMax} Nm` : '',
             minWattAfter2 != null ? `⚡ 🔻 ${minWattAfter2.toFixed(0)} W (${minWattAfter2Sec} s) @ ${rpmAtMinAfter2} rpm | ${torqueAtMinAfter2} Nm` : '',
             `🌀 🔺 ${maxCadence != null ? Math.round(maxCadence) : ''} rpm | 🔻 ${minCadence != null ? Math.round(minCadence) : ''} rpm`,
             `⚙️ 🔺 ${maxTorque != null ? Math.round(maxTorque) : ''} Nm | 🔻 ${minTorque != null ? Math.round(minTorque) : ''} Nm`,
             `❤️ 🔻 ${minHR.toFixed(0)} bpm | 🔺 ${maxHR} bpm`,
-            `🚀 ⬅️ ${vEntry.toFixed(1)} km/h | 🏁 ${vExit.toFixed(1)} km/h | Δ ${deltaV>=0?'+':''}${deltaV.toFixed(1)} km/h`,
-            `📈 Ø acc ${avgAcc.toFixed(2)} km/h/s | Vmax ${vMax.toFixed(1)} km/h`,
-            acc_2_5 != null ? `📈 2→5s:         ${acc_2_5.toFixed(2)} km/h/s (${v_at_2.toFixed(1)} → ${v_at_5.toFixed(1)} km/h)` : '',
-            acc_entry_5 != null ? `🚀 ⬅️→5s:      ${acc_entry_5.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${v_at_5s.toFixed(1)} km/h)` : '',
-            `🚀 ⬅️→Vmax: ${acc_entry_vmax.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${vMax.toFixed(1)} km/h)`,
+            hasOfficialSpeed ? `🚀 ⬅️ ${vEntry.toFixed(1)} km/h | 🏁 ${vExit.toFixed(1)} km/h | Δ ${deltaV>=0?'+':''}${deltaV.toFixed(1)} km/h` : '🚀 velocità non disponibile',
+            hasOfficialSpeed ? `📈 Ø acc ${avgAcc.toFixed(2)} km/h/s | Vmax ${vMax.toFixed(1)} km/h` : '',
+            hasOfficialSpeed && acc_2_5 != null ? `📈 2→5s:         ${acc_2_5.toFixed(2)} km/h/s (${v_at_2.toFixed(1)} → ${v_at_5.toFixed(1)} km/h)` : '',
+            hasOfficialSpeed && acc_entry_5 != null ? `🚀 ⬅️→5s:      ${acc_entry_5.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${v_at_5s.toFixed(1)} km/h)` : '',
+            hasOfficialSpeed ? `🚀 ⬅️→Vmax: ${acc_entry_vmax.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${vMax.toFixed(1)} km/h)` : '',
             `📏 Ø ${avgGrade.toFixed(1)}% | 🔺 ${maxGrade.toFixed(1)}%`,
             startTime ? `🕒 ${formatSecondsToHHMMSS(+startTime)}` : '',
             `🔋 ${Math.round(joules/1000)} kJ | ${Math.round(joulesOverCP/1000)} kJ > CP`,
@@ -398,7 +418,7 @@ const CONFIG_surges = {
         annotations.push({
             x: annX,
             y: annY,
-            text: `#${idx+1}<br>⚡ ${avgPower.toFixed(0)} W<br>⏱ ${displayDurationSec}s<br>Δv ${deltaV>=0?'+':''}${deltaV.toFixed(1)}`,
+            text: `#${idx+1}<br>⚡ ${avgPower.toFixed(0)} W<br>⏱ ${displayDurationSec}s<br>Δv ${hasOfficialSpeed ? (deltaV>=0?'+':'')+deltaV.toFixed(1) : 'n/a'}`,
             showarrow: false,
             font: {family: 'Arial', size: 11, color: 'white'},
             align: 'center',
@@ -408,7 +428,9 @@ const CONFIG_surges = {
     });
 
     const layout = {
-        title: `Surges ≥${CONFIG_surges.MIN_SURGE_SECONDS}s >${CONFIG_surges.MIN_EFFORT_INTENSITY_FTP}% FTP`,
+        title: hasOfficialSpeed 
+            ? `Surges ≥${CONFIG_surges.MIN_SURGE_SECONDS}s >${CONFIG_surges.MIN_EFFORT_INTENSITY_FTP}% FTP`
+            : `⚠️ NO SPEED STREAM - Surges ≥${CONFIG_surges.MIN_SURGE_SECONDS}s >${CONFIG_surges.MIN_EFFORT_INTENSITY_FTP}% FTP`,
         xaxis: {title: 'Distance (km)'},
         yaxis: {title: 'Altitude (m)'},
         annotations,

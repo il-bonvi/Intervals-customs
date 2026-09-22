@@ -1,0 +1,1 @@
+console.log(icu.activity.stream_types);

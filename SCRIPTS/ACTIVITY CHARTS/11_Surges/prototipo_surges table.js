@@ -12,7 +12,7 @@ const CONFIG = {
   LOW_POWER_THRESHOLD_FTP: 130,
   MIN_SPEED_RISE: 1,
 
-  ENTRY_SPEED_SECONDS: 5,
+  ENTRY_SPEED_SECONDS: 4,
   TOP_N: 40
 };
 
@@ -32,6 +32,7 @@ const cadence    = getStreamData("cadence");
 const torque     = getStreamData("torque");
 const heartrate  = getStreamData("fixed_heartrate");
 const grade      = getStreamData("grade_smooth");
+const speedKmh   = getStreamData("velocity_smooth").map(v => (v || 0) * 3.6);
 
 function computeSampleInterval(t) {
   if (!t || t.length < 2) return 1;
@@ -98,13 +99,7 @@ function getSurgeClusters(data, threshold, minSamples, mergeGapSamples) {
 function findBetterStartBySpeedMin(powerStart, powerEnd, lookbackSamples, smoothSamples, lowPowerThr, minRise) {
   const from = Math.max(0, powerStart - lookbackSamples);
 
-  const rawSpeed = [];
-  for (let i = from; i <= powerEnd; i++) {
-    if (i === 0) { rawSpeed.push(0); continue; }
-    const dd = distanceKm[i] - distanceKm[i-1];
-    const dt = time[i] - time[i-1];
-    rawSpeed.push(dt > 0 ? (dd / dt) * 3600 : 0);
-  }
+  const rawSpeed = speedKmh.slice(from, powerEnd + 1);
 
   const smooth = [];
   for (let i = 0; i < rawSpeed.length; i++) {
@@ -229,10 +224,8 @@ top.forEach((cl, idx) => {
   }
 
   function speedAt(idx) {
-    if (idx <= 0 || idx >= distanceKm.length) return 0;
-    const dd = distanceKm[idx] - distanceKm[idx-1];
-    const dt = time[idx] - time[idx-1];
-    return dt > 0 ? (dd / dt) * 3600 : 0;
+    if (idx < 0 || idx >= speedKmh.length) return 0;
+    return speedKmh[idx];
   }
 
   // v entrata
