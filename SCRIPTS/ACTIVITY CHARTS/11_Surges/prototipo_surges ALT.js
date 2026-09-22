@@ -298,6 +298,31 @@ const CONFIG_surges = {
         // Acc entrata → Vmax
         const timeToVmax = time[vMaxIdx] - time[bestStart];
         const acc_entry_vmax = (timeToVmax > 0 && !isNaN(vMax) && !isNaN(vEntry)) ? (vMax - vEntry) / timeToVmax : 0;
+
+        function getAccelerationAtSpeed(targetSpeed, lookbackSeconds) {
+            for (let k = bestStart; k <= cluster.end; k++) {
+                const speedAtTarget = getSpeed(k);
+                if (speedAtTarget >= targetSpeed) {
+                    const targetTime = time[k] - lookbackSeconds;
+                    let beforeIdx = k;
+                    while (beforeIdx > 0 && time[beforeIdx] > targetTime) beforeIdx--;
+                    const elapsed = time[k] - time[beforeIdx];
+                    if (elapsed > 0 && !isNaN(getSpeed(beforeIdx))) {
+                        return {
+                            acceleration: (speedAtTarget - getSpeed(beforeIdx)) / elapsed,
+                            startSpeed: getSpeed(beforeIdx),
+                            targetSpeed: speedAtTarget
+                        };
+                    }
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        const acc45Data = getAccelerationAtSpeed(45, 3);
+        const acc50Data = getAccelerationAtSpeed(50, 5);
+        const acc60Data = getAccelerationAtSpeed(60, 5);
         // =====================================================================
 
         // ========== POWER METRICS ==========
@@ -389,6 +414,9 @@ const CONFIG_surges = {
             hasOfficialSpeed && acc_2_5 != null ? `📈 2→5s:         ${acc_2_5.toFixed(2)} km/h/s (${v_at_2.toFixed(1)} → ${v_at_5.toFixed(1)} km/h)` : '',
             hasOfficialSpeed && acc_entry_5 != null ? `🚀 ⬅️→5s:      ${acc_entry_5.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${v_at_5s.toFixed(1)} km/h)` : '',
             hasOfficialSpeed ? `🚀 ⬅️→Vmax: ${acc_entry_vmax.toFixed(2)} km/h/s (${vEntry.toFixed(1)} → ${vMax.toFixed(1)} km/h)` : '',
+            hasOfficialSpeed && acc45Data ? `🚀 acc45:         ${acc45Data.acceleration.toFixed(2)} km/h/s (${acc45Data.startSpeed.toFixed(1)} → ${acc45Data.targetSpeed.toFixed(1)} km/h)` : '',
+            hasOfficialSpeed && acc50Data ? `🚀 acc50:         ${acc50Data.acceleration.toFixed(2)} km/h/s (${acc50Data.startSpeed.toFixed(1)} → ${acc50Data.targetSpeed.toFixed(1)} km/h)` : '',
+            hasOfficialSpeed && acc60Data ? `🚀 acc60:         ${acc60Data.acceleration.toFixed(2)} km/h/s (${acc60Data.startSpeed.toFixed(1)} → ${acc60Data.targetSpeed.toFixed(1)} km/h)` : '',
             `📏 Ø ${avgGrade.toFixed(1)}% | 🔺 ${maxGrade.toFixed(1)}%`,
             startTime ? `🕒 ${formatSecondsToHHMMSS(+startTime)}` : '',
             `🔋 ${Math.round(joules/1000)} kJ | ${Math.round(joulesOverCP/1000)} kJ > CP`,
