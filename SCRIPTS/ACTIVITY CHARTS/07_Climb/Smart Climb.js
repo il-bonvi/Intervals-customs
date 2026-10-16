@@ -10,15 +10,132 @@ function getBestAverageOverNSeconds(data, n, samplingRate = 1) {
 }
 
 {
-   // Variabili di configurazione
-    const SECTION_LENGTH = 25;
-    const MIN_SEGMENTS = 40;
-    const MIN_GRADE = 5;
-    const MAX_GRADE_END = 2;
-    const MAX_GAP_SEGMENTS = 20;
-    const MIN_DIFFICULTY = 25;
-    const MAX_FLAT_SEGMENTS_IN_CLIMB = 6;
+    // ─── PARAMETRI RILEVAMENTO SALITE (metodo prominenza di gara.html) ───
+    const CLIMB_PARAMS = {
+        minSegments: 7,        // × 50 m = lunghezza minima
+        minDifficulty: 25,     // pendenza² × km (filtra salitelle) — come originale
+        smoothM: 30,           // m — raggio di media sull'altimetria
+        refGrade: 3,           // % — sotto questa un tratto non è salita
+        dropTol: 12,           // m — dislivello "perso" che chiude la salita
+        minAvgGrade: 2,        // % — scarta lunghi tratti troppo dolci (allineato a MIN_GRADE originale)
+        mergePausePct: 15,     // % della più corta delle due salite (0 = non unire)
+        mergeDropPct: 5        // % del dislivello della più piccola, perso nella pausa
+    };
 
+    const SECTION_LENGTH = 50; // metri
+
+    // ─── Helper prominenza (da gara.html) ───
+    function smoothByDistance(values, distances, radiusMeters) {
+        const n = values.length;
+        if (!(radiusMeters > 0)) return values.slice();
+        const smoothed = new Array(n);
+        let lo = 0, hi = 0, sum = 0, count = 0;
+        for (let i = 0; i < n; i++) {
+            const center = distances[i];
+            while (hi < n && distances[hi] <= center + radiusMeters) { sum += values[hi]; count++; hi++; }
+            while (lo < n && distances[lo] < center - radiusMeters) { sum -= values[lo]; count--; lo++; }
+            smoothed[i] = count > 0 ? sum / count : values[i];
+        }
+        return smoothed;
+    }
+
+    function zigzagPivots(f, tol) {
+        const piv = [];
+        const n = f.length;
+        if (n < 2) return piv;
+        let dir = 0, minI = 0, maxI = 0, extI = 0;
+        for (let i = 1; i < n; i++) {
+            if (dir === 0) {
+                if (f[i] < f[minI]) minI = i;
+                if (f[i] > f[maxI]) maxI = i;
+                if (f[i] - f[minI] >= tol)      { piv.push({ i: minI, t: 'min' }); dir = 1;  extI = i; }
+                else if (f[maxI] - f[i] >= tol) { piv.push({ i: maxI, t: 'max' }); dir = -1; extI = i; }
+            } else if (dir === 1) {
+                if (f[i] > f[extI]) extI = i;
+                else if (f[extI] - f[i] >= tol) { piv.push({ i: extI, t: 'max' }); dir = -1; extI = i; }
+            } else {
+                if (f[i] < f[extI]) extI = i;
+                else if (f[i] - f[extI] >= tol) { piv.push({ i: extI, t: 'min' }); dir = 1;  extI = i; }
+            }
+        }
+        if (dir !== 0) piv.push({ i: extI, t: dir === 1 ? 'max' : 'min' });
+        return piv;
+    }
+
+    function detectClimbsByProminence(altitude, distance, opts) {
+        const eleS = smoothByDistance(altitude, distance, opts.smoothM);
+        const g0 = opts.refGrade / 100;
+        const f = eleS.map((e, i) => e - g0 * distance[i]);
+
+        const piv = zigzagPivots(f, opts.dropTol);
+        const MIN_LAST = 25;
+        const sections = [];
+        const climbs = [];
+
+        const cand = [];
+        for (let k = 0; k + 1 < piv.length; k++) {
+            if (piv[k].t === 'min' && piv[k + 1].t === 'max' && piv[k + 1].i > piv[k].i) {
+                cand.push({ s: piv[k].i, e: piv[k + 1].i });
+            }
+        }
+
+        if (opts.mergePausePct > 0) {
+            let merged = true;
+            while (merged) {
+                merged = false;
+                for (let k = 0; k + 1 < cand.length; k++) {
+                    const A = cand[k], B = cand[k + 1];
+                    const lenA = distance[A.e] - distance[A.s];
+                    const lenB = distance[B.e] - distance[B.s];
+                    const gap = distance[B.s] - distance[A.e];
+                    const gainA = eleS[A.e] - eleS[A.s];
+                    const gainB = eleS[B.e] - eleS[B.s];
+                    let minEle = eleS[A.e];
+                    for (let i = A.e; i <= B.s; i++) if (eleS[i] < minEle) minEle = eleS[i];
+                    const drop = eleS[A.e] - minEle;
+                    if (gap <= (opts.mergePausePct / 100) * Math.min(lenA, lenB) &&
+                        drop <= (opts.mergeDropPct / 100) * Math.min(gainA, gainB)) {
+                        cand.splice(k, 2, { s: A.s, e: B.e });
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (const { s, e } of cand) {
+            const bounds = [s];
+            let cs = s;
+            for (let i = s + 1; i <= e; i++) {
+                if (distance[i] - distance[cs] >= SECTION_LENGTH || i === e) {
+                    bounds.push(i);
+                    cs = i;
+                }
+            }
+            if (bounds.length > 2 && distance[bounds[bounds.length - 1]] - distance[bounds[bounds.length - 2]] < MIN_LAST) {
+                bounds.splice(bounds.length - 2, 1);
+            }
+
+            const firstSeg = sections.length;
+            for (let b = 0; b + 1 < bounds.length; b++) {
+                const a = bounds[b], z = bounds[b + 1];
+                const d = distance[z] - distance[a];
+                const dz = altitude[z] - altitude[a];
+                sections.push({
+                    sectionIndex: sections.length,
+                    startIndex: a,
+                    endIndex: z,
+                    distance: d,
+                    elevation: dz,
+                    grade: d > 0 ? (dz / d) * 100 : 0
+                });
+            }
+            if (sections.length - 1 >= firstSeg) {
+                climbs.push({ startSegment: firstSeg, endSegment: sections.length - 1 });
+            }
+        }
+        return { sections, climbs };
+    }
 
     // Funzione per recuperare i dati dei flussi
     function getStreamData(streamName) {
@@ -46,107 +163,52 @@ function getBestAverageOverNSeconds(data, n, samplingRate = 1) {
             }
         }
     }
-    
-     
-    let sections = [];
-    let currentStartIndex = 0;
-    
-    // Suddivisione in sezioni
-    for (let i = 1; i < distance.length; i++) {
-        const distDiff = distance[i] - distance[currentStartIndex];
-        if (distDiff >= SECTION_LENGTH || i === distance.length - 1) {
-            const altDiff = altitude[i] - altitude[currentStartIndex];
-            const sectionGrade = (altDiff / distDiff) * 100;
-    
-            sections.push({
-                   sectionIndex: sections.length,
-                startIndex: currentStartIndex,
-                endIndex: i,
-                distance: distDiff,
-                elevation: altDiff,
-                grade: sectionGrade
-            });
-    
-            currentStartIndex = i;
-        }
-    }
-    
-    // Identificazione delle salite in base ai criteri
-    let climbs = [];
-    let currentClimb = { startSegment: null, endSegment: null };
-    let flatSegmentCount = 0;
 
-    sections.forEach((section, index) => {
-        if (currentClimb.startSegment === null && section.grade >= MIN_GRADE) {
-            currentClimb.startSegment = section.sectionIndex;
-            flatSegmentCount = 0;
-        } else if (currentClimb.startSegment !== null) {
-            if (section.grade >= MIN_GRADE) {
-                flatSegmentCount = 0;
-            } else if (section.grade < MAX_GRADE_END) {
-                flatSegmentCount++;
-                if (flatSegmentCount > MAX_FLAT_SEGMENTS_IN_CLIMB || index === sections.length - 1) {
-                    currentClimb.endSegment = section.sectionIndex - flatSegmentCount;
-                    if (currentClimb.endSegment - currentClimb.startSegment >= MIN_SEGMENTS) {
-                        climbs.push({ ...currentClimb });
-                    }
-                    currentClimb = { startSegment: null, endSegment: null };
-                    flatSegmentCount = 0;
-                }
-            }
-        }
-    });
-      
-    // Unisci salite e gap come parte della salita
-    for (let i = 1; i < climbs.length; i++) {
-        const prevClimb = climbs[i - 1];
-        const currentClimb = climbs[i];
-        const gapSegments = currentClimb.startSegment - prevClimb.endSegment;
-    
-        if (gapSegments <= MAX_GAP_SEGMENTS) {
-            // Unisci gap e salite
-            prevClimb.endSegment = currentClimb.endSegment;
-            climbs.splice(i, 1);
-            i--; // Aggiorna l'indice perché una salita è stata rimossa
-        }
-    }
+    // ─── Rilevamento salite (prominenza) ───
+    const { sections, climbs } = detectClimbsByProminence(altitude, distance, CLIMB_PARAMS);
     
     // Visualizzazione delle salite identificate
     let annotations = [];
     let traces = [];
     let climbNo = 0;
-    //climbs.forEach((climb, climbNo) => {
+
     climbs.forEach(climb => {
         const startIndex = sections[climb.startSegment].startIndex;
         const endIndex = sections[climb.endSegment].endIndex;
-    const climbSections = sections.slice(climb.startSegment, climb.endSegment);
-    // Calcolo dati salita: distanza e dislivello come differenza tra quota finale e iniziale
-    const dist = distance[endIndex] - distance[startIndex];
-    const elevationGain = altitude[endIndex] - altitude[startIndex];
-    const avgGrade = elevationGain / dist * 100;
+        const climbSections = sections.slice(climb.startSegment, climb.endSegment + 1);
+        // Calcolo dati salita: distanza e dislivello come differenza tra quota finale e iniziale
+        const dist = distance[endIndex] - distance[startIndex];
+        const elevationGain = altitude[endIndex] - altitude[startIndex];
+        const avgGrade = dist > 0 ? elevationGain / dist * 100 : 0;
         const difficultyCoefficient = Math.pow(avgGrade, 2) * (dist / 1000);
 
-        // Filtra le salite con difficoltà inferiore a 5
-        if (difficultyCoefficient < MIN_DIFFICULTY) {
-            return; // Ignora questa salita
+        // Filtra le salite (stessi criteri di stile originale + params)
+        if (difficultyCoefficient < CLIMB_PARAMS.minDifficulty) {
+            return;
+        }
+        if (dist < CLIMB_PARAMS.minSegments * SECTION_LENGTH) {
+            return;
+        }
+        if (avgGrade < CLIMB_PARAMS.minAvgGrade) {
+            return;
         }
 
         climbNo++; 
-    const climbPowers = power.slice(startIndex, endIndex);
-    // Calcolo potenza media prima e seconda metà salita e rapporto
-    const half = Math.floor(climbPowers.length / 2);
-    const rat_1 = half > 0 ? climbPowers.slice(0, half).reduce((a, b) => a + b, 0) / half : 0;
-    const rat_2 = (climbPowers.length - half) > 0 ? climbPowers.slice(half).reduce((a, b) => a + b, 0) / (climbPowers.length - half) : 0;
-    const ratio = rat_1 > 0 ? rat_2 / rat_1 : 0;
+        const climbPowers = power.slice(startIndex, endIndex);
+        // Calcolo potenza media prima e seconda metà salita e rapporto
+        const half = Math.floor(climbPowers.length / 2);
+        const rat_1 = half > 0 ? climbPowers.slice(0, half).reduce((a, b) => a + b, 0) / half : 0;
+        const rat_2 = (climbPowers.length - half) > 0 ? climbPowers.slice(half).reduce((a, b) => a + b, 0) / (climbPowers.length - half) : 0;
+        const ratio = rat_1 > 0 ? rat_2 / rat_1 : 0;
 
-    // climbPowers già dichiarato sopra
+        // climbPowers già dichiarato sopra
         const climbHRs = heartrate.slice(startIndex, endIndex);
+        const hasHR = climbHRs.some(hr => hr > 0);
         const climbCadence = getStreamData("cadence").slice(startIndex, endIndex);
-        const avgPower = climbPowers.reduce((a, b) => a + b, 0) / climbPowers.length;
+        const avgPower = climbPowers.length ? climbPowers.reduce((a, b) => a + b, 0) / climbPowers.length : 0;
         const best5sWatts = getBestAverageOverNSeconds(climbPowers, 5);
-    const hasHR = climbHRs.some(hr => hr > 0);
-    const avgHR = hasHR ? climbHRs.reduce((a, b) => a + b, 0) / climbHRs.length : null;
-    const maxHR = hasHR ? Math.max(...climbHRs) : null;
+        const avgHR = hasHR ? climbHRs.reduce((a, b) => a + b, 0) / climbHRs.length : null;
+        const maxHR = hasHR ? Math.max(...climbHRs) : null;
         const avgCadence = climbCadence.length ? climbCadence.reduce((a, b) => a + b, 0) / climbCadence.length : 0;
         const climbTimeInSeconds = time[endIndex] - time[startIndex];
         function formatSecondsToHHMMSS(seconds) {
@@ -157,8 +219,8 @@ function getBestAverageOverNSeconds(data, n, samplingRate = 1) {
         }
         const formattedTime = `${Math.floor(climbTimeInSeconds / 60)}m${climbTimeInSeconds % 60}s`;
         const formattedTimeHHMMSS = formatSecondsToHHMMSS(climbTimeInSeconds);
-        const ascentSpeed = elevationGain / (climbTimeInSeconds / 3600);
-        const avgHorizontalSpeed = (dist / 1000) / (climbTimeInSeconds / 3600);
+        const ascentSpeed = climbTimeInSeconds > 0 ? elevationGain / (climbTimeInSeconds / 3600) : 0;
+        const avgHorizontalSpeed = climbTimeInSeconds > 0 ? (dist / 1000) / (climbTimeInSeconds / 3600) : 0;
         const maxGrade = Math.max(...grade.slice(startIndex, endIndex));
         const weight = icu.activity.icu_weight;
         const avgPowerPerKg = weight ? avgPower / weight : 0;
@@ -193,7 +255,7 @@ function getBestAverageOverNSeconds(data, n, samplingRate = 1) {
         const kJ_per_h_kg = (weight && hours > 0) ? kJ_accum / hours / weight : 0;
         const kJ_overCP_per_h_kg = (weight && hours > 0) ? kJ_accum_overCP / hours / weight : 0;
         
-        // Determina il colore secondo la scala
+        // Determina il colore secondo la scala (identica all'originale)
         let bgColor = "grey";
         if (difficultyCoefficient >= 25 && difficultyCoefficient < 75) bgColor = "yellowgreen";
         else if (difficultyCoefficient >= 75 && difficultyCoefficient < 150) bgColor = "orange";
@@ -219,7 +281,7 @@ function getBestAverageOverNSeconds(data, n, samplingRate = 1) {
 🔀 ${rat_1.toFixed(0)} W | ${rat_2.toFixed(0)} W | ${ratio.toFixed(2)}<br>
 ${hasHR ? `❤️ ∅ ${avgHR.toFixed(0)} bpm | max. ${maxHR} bpm<br>` : ''}
 ⏱️ ${formattedTimeHHMMSS} | 🚴‍♂️ ${avgHorizontalSpeed.toFixed(1)} km/h<br>
-🚵‍♂️ ${ascentSpeed.toFixed(0)} m/h${vamArrow} | ${(avgPowerPerKg - TEORICWKG).toFixed(2)} W/kg<br>
+🚵 ${ascentSpeed.toFixed(0)} m/h${vamArrow} | ${(avgPowerPerKg - TEORICWKG).toFixed(2)} W/kg<br>
 🧮 ${TEORICWKG.toFixed(2)} W/kg | ${TEORICVAM.toFixed(0)} VAM | ${teoricWkgDiffPerc}<br>
 ⏱️ ${formatSecondsToHHMMSS(time[startIndex])}<br>
 🔋 ${Math.round(kJ_accum)} kJ | ${Math.round(kJ_accum_overCP)} kJ > CP<br>
@@ -230,7 +292,7 @@ ${hasHR ? `❤️ ∅ ${avgHR.toFixed(0)} bpm | max. ${maxHR} bpm<br>` : ''}
         annotations.push({
             x: (distanceKm[startIndex] + distanceKm[endIndex]) / 2,
             y: Math.max(...altitude) + 130,
-text: `QDH ${difficultyCoefficient.toFixed(0)}<br>⚡ ${avgPower.toFixed(0)} <br>❤ ${avgHR.toFixed(0)} <br>⏱️ ${Math.floor(climbTimeInSeconds / 60)}m${climbTimeInSeconds % 60}s`,
+text: `QDH ${difficultyCoefficient.toFixed(0)}<br>⚡ ${avgPower.toFixed(0)} <br>${hasHR ? `❤ ${avgHR.toFixed(0)}` : ''} <br>⏱️ ${Math.floor(climbTimeInSeconds / 60)}m${climbTimeInSeconds % 60}s`,
             showarrow: false,
             font: {
                 family: 'Arial',
